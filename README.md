@@ -35,13 +35,13 @@ C:/xampp/htdocs/
 * Crea una base de datos
 * Importa el archivo `.sql`
 
-4. Configura la conexión a la base de datos:
+4. Configura tu conexión a la base de datos en el archivo correspondiente:
 
-```php
-$host = "localhost";
-$user = "root";
-$password = "";
-$database = "code_digital_bd";
+- Host: localhost
+- Usuario: tu_usuario
+- Contraseña: tu_contraseña
+- Base de datos: tu_base_de_datos
+
 ```
 
 5. Ejecuta el proyecto:
