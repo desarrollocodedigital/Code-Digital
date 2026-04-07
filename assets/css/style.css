@@ -1,0 +1,31 @@
+/* Estilos personalizados para Code Digital */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body { 
+    font-family: 'Inter', sans-serif; 
+}
+
+/* Animaciones para el carrusel infinito de clientes */
+.animate-marquee {
+    animation: marquee 30s linear infinite;
+}
+.animate-marquee2 {
+    animation: marquee2 30s linear infinite;
+}
+@keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-100%); }
+}
+@keyframes marquee2 {
+    0% { transform: translateX(100%); }
+    100% { transform: translateX(0%); }
+}
+
+/* Desvanecimiento en los bordes del carrusel */
+.mask-fade {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
