@@ -1,6 +1,10 @@
 <?php 
+$base_asset_path = '';
 include 'models/proyectos.php'; 
 include 'models/clientes.php'; 
+include 'models/ajustes.php'; 
+
+$ajustes = getAjustes();
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -10,14 +14,14 @@ include 'models/clientes.php';
     <title>Code Digital - Plataformas de Software e IA</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuración y lógica principal -->
-    <script src="assets/js/main.js"></script>
+    <!-- Configuración y lógica principal (Cache-Busting activo) -->
+    <script src="assets/js/main.js?v=<?php echo filemtime('assets/js/main.js'); ?>"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Google Fonts: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <!-- Estilos personalizados -->
-    <link rel="stylesheet" href="assets/css/style.css">
+    <!-- Estilos personalizados (Cache-Busting activo) -->
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo filemtime('assets/css/style.css'); ?>">
 </head>
 <body class="font-sans min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 selection:bg-brand-lime/30 dark:selection:bg-brand-cyan/30 selection:text-gray-900 dark:selection:text-white">
 
@@ -94,7 +98,7 @@ include 'models/clientes.php';
                     <!-- Rating Card 1 -->
                     <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none p-6 rounded-2xl flex items-center justify-between transform transition-all duration-300 hover:-translate-y-1 cursor-default ml-0 group">
                         <div>
-                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider group-hover:text-brand-cyan transition-colors">Calificado en Clutch</div>
+                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider group-hover:text-brand-cyan transition-colors">Calificado en Facebook</div>
                             <div class="flex gap-1">
                                 <i data-lucide="star" class="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"></i>
                                 <i data-lucide="star" class="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"></i>
@@ -104,8 +108,8 @@ include 'models/clientes.php';
                             </div>
                         </div>
                         <div class="text-right">
-                            <div class="text-2xl font-bold text-[#111827] dark:text-white">4.9</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">150+ Reseñas</div>
+                            <div class="text-2xl font-bold text-[#111827] dark:text-white">4.8</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">180+ Reseñas</div>
                         </div>
                     </div>
                     <!-- Rating Card 2 -->
@@ -128,7 +132,7 @@ include 'models/clientes.php';
                     <!-- Rating Card 3 -->
                     <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none p-6 rounded-2xl flex items-center justify-between transform transition-all duration-300 hover:-translate-y-1 cursor-default ml-12 group">
                         <div>
-                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider group-hover:text-brand-cyan transition-colors">Calificado en Upwork</div>
+                            <div class="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wider group-hover:text-brand-cyan transition-colors">Calificado en Indeed</div>
                             <div class="flex gap-1">
                                 <i data-lucide="star" class="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"></i>
                                 <i data-lucide="star" class="w-3.5 h-3.5 fill-yellow-400 text-yellow-400"></i>
@@ -139,7 +143,7 @@ include 'models/clientes.php';
                         </div>
                         <div class="text-right">
                             <div class="text-2xl font-bold text-[#111827] dark:text-white">5.0</div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">200+ Reseñas</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">120+ Reseñas</div>
                         </div>
                     </div>
                 </div>
@@ -268,14 +272,21 @@ include 'models/clientes.php';
                         <h2 class="text-3xl font-bold text-[#111827] dark:text-white mb-2 transition-colors duration-300">Casos de Éxito Destacados</h2>
                         <p class="text-gray-500 dark:text-gray-400 font-medium transition-colors duration-300">Transformando ideas en soluciones digitales líderes en el mercado.</p>
                     </div>
-                    <button class="inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 text-sm border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:border-brand-cyan dark:hover:border-brand-cyan hover:text-brand-cyan dark:hover:text-brand-cyan hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm">
+                    <a href="views/portafolio.php" class="inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-200 text-sm border bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:border-brand-cyan dark:hover:border-brand-cyan hover:text-brand-cyan dark:hover:text-brand-cyan hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm">
                         Ver todo el portafolio
-                    </button>
+                    </a>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <?php foreach ($proyectos as $proyecto): ?>
-                        <?php include 'components/project-card.php'; ?>
+                    <?php 
+                    $featured_projects = array_slice($proyectos, 0, 3);
+                    foreach ($featured_projects as $index => $proyecto): 
+                    ?>
+                        <div class="<?php echo ($index === 2) ? 'lg:col-span-2 flex justify-center' : ''; ?>">
+                            <div class="<?php echo ($index === 2) ? 'w-full lg:max-w-[49%]' : 'w-full'; ?>">
+                                <?php include 'components/project-card.php'; ?>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -336,8 +347,8 @@ include 'models/clientes.php';
                             <p class="text-gray-500 dark:text-gray-400 font-medium max-w-xs">Orgullosamente impulsando tecnología e innovación desde <span class="font-bold text-[#111827] dark:text-white">Sinaloa 🍅</span> para cada rincón de la república.</p>
                         </div>
                         
-                        <!-- Contenedor del Mapa (Google Maps Embed) -->
-                        <div class="w-full md:w-80 h-52 md:h-64 rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl relative group-hover:scale-[1.02] transition-transform duration-500">
+                        <!-- Contenedor del Mapa (Google Maps Embed) - OCULTO A PETICION -->
+                        <div class="hidden w-full md:w-80 h-52 md:h-64 rounded-[2rem] overflow-hidden border-4 border-white dark:border-gray-800 shadow-xl relative group-hover:scale-[1.02] transition-transform duration-500">
                             <iframe 
                                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15050.472782766838!2d-99.1738734!3d19.4326077!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x85d1ff35f5bd1563%3A0x6c99f9c2512760!2sCiudad%20de%20M%C3%A9xico!5e0!3m2!1ses-419!2smx!4v1712415000000!5m2!1ses-419!2smx" 
                                 width="100%" 
@@ -372,6 +383,7 @@ include 'models/clientes.php';
         </section>
 
         <!-- AWARDS SECTION -->
+        <?php if (($ajustes['show_awards'] ?? '1') === '1'): ?>
         <section class="py-24 bg-[#f8fafc] dark:bg-gray-900/50 transition-colors duration-300">
             <div class="max-w-6xl mx-auto px-6 lg:px-12">
                 <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-[2.5rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] overflow-hidden transition-colors duration-300">
@@ -422,6 +434,7 @@ include 'models/clientes.php';
                 </div>
             </div>
         </section>
+        <?php endif; ?>
 
         <!-- CONTACT SECTION -->
         <section id="contacto" class="py-24 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 transition-colors duration-300 relative overflow-hidden">
@@ -490,7 +503,10 @@ include 'models/clientes.php';
                                 </div>
                                 
                                 <button type="submit" id="btn-submit-contact" class="w-full inline-flex items-center justify-center px-6 py-4 rounded-xl font-bold transition-all duration-200 text-sm border bg-brand-cyan text-gray-900 border-brand-cyan hover:bg-brand-lime hover:border-brand-lime hover:shadow-[0_0_15px_rgba(178,255,5,0.4)] mt-2">
-                                    <span id="btn-text-contact">Enviar mensaje</span> <i id="btn-icon-contact" data-lucide="send" class="w-4 h-4 ml-2"></i>
+                                    <span id="btn-text-contact">Enviar mensaje</span> 
+                                    <span id="btn-icon-container" class="ml-2 flex items-center justify-center">
+                                        <i data-lucide="send" class="w-4 h-4"></i>
+                                    </span>
                                 </button>
                             </form>
                         </div>
@@ -579,18 +595,23 @@ include 'models/clientes.php';
             <div class="p-8">
                 <form id="demo-form" class="space-y-5">
                     <div>
+                        <label for="demo-nombre" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Nombre completo</label>
+                        <input type="text" id="demo-nombre" name="nombre" required placeholder="Ej. Juan Pérez" class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors" />
+                    </div>
+
+                    <div>
                         <label for="demo-telefono" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Teléfono de contacto</label>
-                        <input type="tel" id="demo-telefono" name="demo-telefono" maxlength="10" minlength="10" pattern="[0-9]{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '')" inputmode="numeric" required placeholder="Ej. 6672644610" class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors" />
+                        <input type="tel" id="demo-telefono" name="celular" maxlength="20" minlength="10" pattern="[0-9]{10}" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" inputmode="numeric" required placeholder="Ej. 6672644610" class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors" />
                     </div>
                     
                     <div>
                         <label for="demo-email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Correo electrónico</label>
-                        <input type="email" id="demo-email" required placeholder="tu@empresa.com" class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors" />
+                        <input type="email" id="demo-email" name="email" required placeholder="tu@empresa.com" class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors" />
                     </div>
                     
                     <div>
                         <label for="demo-motivo" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">¿Por qué deseas acceso?</label>
-                        <textarea id="demo-motivo" rows="3" required placeholder="Cuéntanos brevemente tus necesidades..." class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors resize-none"></textarea>
+                        <textarea id="demo-motivo" name="descripcion" rows="3" required placeholder="Cuéntanos brevemente tus necesidades..." class="w-full bg-[#f8fafc] dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand-cyan focus:ring-1 focus:ring-brand-cyan transition-colors resize-none"></textarea>
                     </div>
                     
                     <button type="submit" class="w-full py-4 bg-brand-cyan text-gray-900 font-bold rounded-xl text-md transition-all hover:bg-brand-lime hover:shadow-[0_0_20px_rgba(178,255,5,0.4)] mt-2 flex items-center justify-center gap-2">
@@ -649,70 +670,10 @@ include 'models/clientes.php';
 
     <!-- SCRIPTS -->
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const contactForm = document.getElementById('contact-form');
-        const btnSubmit = document.getElementById('btn-submit-contact');
-        const btnText = document.getElementById('btn-text-contact');
-        const btnIcon = document.getElementById('btn-icon-contact');
-
-        if(contactForm) {
-            contactForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                
-                // UI State: Loading
-                const originalText = btnText.innerText;
-                const originalIcon = btnIcon.dataset.lucide;
-                
-                btnText.innerText = 'Enviando...';
-                btnIcon.setAttribute('data-lucide', 'loader-2');
-                btnIcon.classList.add('animate-spin');
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-                btnSubmit.classList.add('opacity-75', 'cursor-not-allowed');
-                btnSubmit.disabled = true;
-
-                const formData = new FormData(contactForm);
-
-                try {
-                    const response = await fetch('api/contact_handler.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const result = await response.json();
-
-                    if (result.success) {
-                        // Success State
-                        btnText.innerText = '¡Enviado!';
-                        btnIcon.setAttribute('data-lucide', 'check-circle');
-                        btnIcon.classList.remove('animate-spin');
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                        btnSubmit.classList.replace('bg-brand-cyan', 'bg-brand-lime');
-                        contactForm.reset();
-                        
-                        setTimeout(() => {
-                            btnText.innerText = originalText;
-                            btnIcon.setAttribute('data-lucide', originalIcon);
-                            btnSubmit.classList.replace('bg-brand-lime', 'bg-brand-cyan');
-                            if (typeof lucide !== 'undefined') lucide.createIcons();
-                            btnSubmit.classList.remove('opacity-75', 'cursor-not-allowed');
-                            btnSubmit.disabled = false;
-                        }, 5000);
-                    } else {
-                        alert('Error: ' + result.message);
-                        btnSubmit.disabled = false;
-                        btnText.innerText = originalText;
-                        btnIcon.setAttribute('data-lucide', originalIcon);
-                        btnIcon.classList.remove('animate-spin');
-                    }
-                } catch (error) {
-                    alert('Hubo un error de red al intentar conectar. Intente nuevamente.');
-                    btnSubmit.disabled = false;
-                    btnText.innerText = originalText;
-                    btnIcon.setAttribute('data-lucide', originalIcon);
-                    btnIcon.classList.remove('animate-spin');
-                }
-            });
-        }
-    });
+        document.addEventListener('DOMContentLoaded', () => {
+            // Fix for Relative API paths in main.js
+            window.apiHandlerPath = 'api/contact_handler.php';
+        });
     </script>
 </body>
 </html>

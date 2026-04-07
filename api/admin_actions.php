@@ -1,11 +1,15 @@
 <?php
-/**
- * Admin Actions Handler
- * Procesa peticiones CRUD para Proyectos y Clientes
- */
+// Importar PHPMailer para el envío de plantillas
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require_once __DIR__ . '/../libs/PHPMailer/Exception.php';
+require_once __DIR__ . '/../libs/PHPMailer/PHPMailer.php';
+require_once __DIR__ . '/../libs/PHPMailer/SMTP.php';
+
+require_once __DIR__ . '/../config/db.php';
 
 header('Content-Type: application/json');
-require_once __DIR__ . '/../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'message' => 'Método no permitido']);
@@ -33,6 +37,30 @@ try {
             break;
         case 'delete_message':
             deleteMessage($pdo);
+            break;
+        case 'save_potential_client':
+            savePotentialClient($pdo);
+            break;
+        case 'delete_potential_client':
+            deletePotentialClient($pdo);
+            break;
+        case 'mark_creds_sent':
+            markCredsSent($pdo);
+            break;
+        case 'convert_message_to_lead':
+            convertMessageToLead($pdo);
+            break;
+        case 'update_ajuste':
+            updateAjusteAction($pdo);
+            break;
+        case 'save_template':
+            saveTemplate($pdo);
+            break;
+        case 'delete_template':
+            deleteTemplate($pdo);
+            break;
+        case 'send_template_email':
+            sendTemplateEmail($pdo);
             break;
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida: ' . $action]);
@@ -199,3 +227,219 @@ function deleteMessage($pdo) {
     $stmt->execute([$id]);
     echo json_encode(['success' => true, 'message' => 'Mensaje eliminado permanentemente']);
 }
+
+/**
+ * Guarda o actualiza un cliente potencial
+ */
+function savePotentialClient($pdo) {
+    $id = $_POST['id'] ?? null;
+    $data = [
+        'nombre' => $_POST['nombre'] ?? '',
+        'email' => $_POST['email'] ?? '',
+        'telefono' => $_POST['telefono'] ?? '',
+        'empresa_cargo' => !empty($_POST['empresa_cargo']) ? $_POST['empresa_cargo'] : null,
+        'descripcion' => $_POST['descripcion'] ?? '',
+        'estado' => $_POST['estado'] ?? 'nuevo'
+    ];
+
+    if ($id) {
+        $sql = "UPDATE clientes_potenciales SET nombre = :nombre, email = :email, telefono = :telefono, empresa_cargo = :empresa_cargo, descripcion = :descripcion, estado = :estado WHERE id = :id";
+        $data['id'] = $id;
+    } else {
+        $sql = "INSERT INTO clientes_potenciales (nombre, email, telefono, empresa_cargo, descripcion, estado) VALUES (:nombre, :email, :telefono, :empresa_cargo, :descripcion, :estado)";
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($data);
+    echo json_encode(['success' => true, 'message' => 'Cliente potencial guardado correctamente']);
+}
+
+/**
+ * Elimina un cliente potencial
+ */
+function deletePotentialClient($pdo) {
+    $id = $_POST['id'] ?? null;
+    if (!$id) throw new Exception("ID no proporcionado");
+    
+    $stmt = $pdo->prepare("DELETE FROM clientes_potenciales WHERE id = ?");
+    $stmt->execute([$id]);
+    echo json_encode(['success' => true, 'message' => 'Cliente potencial eliminado']);
+}
+
+/**
+ * Marca que se enviaron las credenciales de un mensaje DEMO
+ */
+function markCredsSent($pdo) {
+    $id = $_POST['id'] ?? null;
+    if (!$id) throw new Exception("ID no proporcionado");
+    
+    $stmt = $pdo->prepare("UPDATE mensajes SET creds_sent = 1 WHERE id = ?");
+    $stmt->execute([$id]);
+    echo json_encode(['success' => true, 'message' => 'Credenciales marcadas como enviadas']);
+}
+
+/**
+ * Convierte un mensaje de CONTACTO a un Cliente Potencial
+ */
+function convertMessageToLead($pdo) {
+    $id = $_POST['id'] ?? null;
+    if (!$id) throw new Exception("ID del mensaje no proporcionado");
+
+    // 1. Obtener mensaje
+    $stmt = $pdo->prepare("SELECT * FROM mensajes WHERE id = ?");
+    $stmt->execute([$id]);
+    $msg = $stmt->fetch();
+
+    if (!$msg) throw new Exception("Mensaje no encontrado");
+    if (!empty($msg['lead_id'])) throw new Exception("Este mensaje ya fue convertido en lead");
+
+    // 2. Insertar como lead
+    $origenPrefix = ($msg['tipo'] === 'plantilla') ? "Origen: Correo electrónico" : "Origen: Formulario de Contacto";
+    
+    $sqlInsert = "INSERT INTO clientes_potenciales (nombre, email, telefono, descripcion, estado) VALUES (:nombre, :email, :telefono, :descripcion, 'nuevo')";
+    $stmtInsert = $pdo->prepare($sqlInsert);
+    $stmtInsert->execute([
+        'nombre' => $msg['nombre'],
+        'email' => $msg['email'],
+        'telefono' => $msg['celular'],
+        'descripcion' => $origenPrefix . "\n\n" . $msg['descripcion']
+    ]);
+    
+    $leadId = $pdo->lastInsertId();
+
+    // 3. Marcar mensaje con el lead_id e idealmente como leído
+    $sqlUpdate = "UPDATE mensajes SET lead_id = ?, estado = 'leido', fecha_lectura = NOW() WHERE id = ?";
+    $stmtUpdate = $pdo->prepare($sqlUpdate);
+    $stmtUpdate->execute([$leadId, $id]);
+
+    echo json_encode(['success' => true, 'message' => 'Mensaje convertido a cliente potencial exitosamente', 'lead_id' => $leadId]);
+}
+
+/**
+ * Actualiza una configuración global en la tabla ajustes
+ */
+function updateAjusteAction($pdo) {
+    if (!isset($_POST['clave']) || !isset($_POST['valor'])) {
+        throw new Exception("Faltan parámetros");
+    }
+    
+    $clave = $_POST['clave'];
+    $valor = $_POST['valor'];
+    
+    $stmt = $pdo->prepare("UPDATE ajustes SET valor = ? WHERE clave = ?");
+    $stmt->execute([$valor, $clave]);
+    
+    echo json_encode(['success' => true, 'message' => 'Configuración actualizada']);
+}
+
+/**
+ * Guarda o actualiza una plantilla de correo
+ */
+function saveTemplate($pdo) {
+    $id = $_POST['id'] ?? null;
+    $data = [
+        'titulo' => $_POST['titulo'] ?? '',
+        'asunto' => $_POST['asunto'] ?? '',
+        'cuerpo' => $_POST['cuerpo'] ?? ''
+    ];
+
+    if ($id) {
+        $sql = "UPDATE plantillas_email SET titulo = :titulo, asunto = :asunto, cuerpo = :cuerpo WHERE id = :id";
+        $data['id'] = $id;
+    } else {
+        $sql = "INSERT INTO plantillas_email (titulo, asunto, cuerpo) VALUES (:titulo, :asunto, :cuerpo)";
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($data);
+    echo json_encode(['success' => true, 'message' => 'Plantilla guardada correctamente']);
+}
+
+/**
+ * Elimina una plantilla
+ */
+function deleteTemplate($pdo) {
+    $id = $_POST['id'] ?? null;
+    if (!$id) throw new Exception("ID no proporcionado");
+    
+    $stmt = $pdo->prepare("DELETE FROM plantillas_email WHERE id = ?");
+    $stmt->execute([$id]);
+    echo json_encode(['success' => true, 'message' => 'Plantilla eliminada']);
+}
+
+/**
+ * Envía un correo basado en una plantilla y lo registra en el CRM
+ */
+function sendTemplateEmail($pdo) {
+    $email_destinatario = $_POST['email'] ?? '';
+    $template_id = $_POST['template_id'] ?? '';
+    $mensaje_libre = $_POST['mensaje_libre'] ?? '';
+    
+    if (empty($email_destinatario)) throw new Exception("Email de destinatario obligatorio");
+    if (empty($template_id)) throw new Exception("Debes seleccionar una plantilla");
+
+    // 1. Obtener Plantilla
+    $stmt = $pdo->prepare("SELECT * FROM plantillas_email WHERE id = ?");
+    $stmt->execute([$template_id]);
+    $template = $stmt->fetch();
+    if (!$template) throw new Exception("Plantilla no encontrada");
+
+    // 2. Procesar Variables y Mensaje Libre
+    // Buscamos el nombre del cliente basado en el email
+    $stmtClient = $pdo->prepare("SELECT nombre FROM clientes_potenciales WHERE email = ? LIMIT 1");
+    $stmtClient->execute([$email_destinatario]);
+    $client = $stmtClient->fetch();
+
+    if (!$client) {
+        $stmtClient = $pdo->prepare("SELECT nombre FROM mensajes WHERE email = ? LIMIT 1");
+        $stmtClient->execute([$email_destinatario]);
+        $client = $stmtClient->fetch();
+    }
+    
+    $nombre_cliente = $client ? $client['nombre'] : 'Cliente';
+
+    $cuerpo_final = str_replace('{{nombre}}', $nombre_cliente, $template['cuerpo']);
+    $cuerpo_final = str_replace('[[CONTENIDO_LIBRE]]', $mensaje_libre, $cuerpo_final);
+
+    // 3. Envío vía PHPMailer
+    $mailConfig = require __DIR__ . '/../config/mail.php';
+    $mail = new PHPMailer(true);
+
+    try {
+        $mail->isSMTP();
+        $mail->Host       = $mailConfig['host'];
+        $mail->SMTPAuth   = $mailConfig['auth'];
+        $mail->Username   = $mailConfig['username'];
+        $mail->Password   = $mailConfig['password'];
+        $mail->SMTPSecure = $mailConfig['secure'];
+        $mail->Port       = $mailConfig['port'];
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom($mailConfig['from_email'], $mailConfig['from_name']);
+        $mail->addAddress($email_destinatario);
+
+        $mail->isHTML(true);
+        $mail->Subject = $template['asunto'];
+        
+        // Sincronizar estilos con el visualizador del dashboard
+        $baseStyles = "
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 20px; }
+                .email-container { white-space: pre-wrap; }
+            </style>
+        ";
+        $mail->Body = $baseStyles . "<div class='email-container'>" . $cuerpo_final . "</div>";
+
+        $mail->send();
+
+        // 4. Registrar en la tabla mensajes como comunicación SALIENTE
+        $statusMsg = "Propuesta enviada — esperando confirmación del cliente";
+        $stmtLog = $pdo->prepare("INSERT INTO mensajes (nombre, email, descripcion, tipo, estado) VALUES (?, ?, ?, 'plantilla', 'leido')");
+        $stmtLog->execute([$nombre_cliente, $email_destinatario, $statusMsg]);
+
+        echo json_encode(['success' => true, 'message' => 'Correo enviado exitosamente y registrado en el CRM']);
+    } catch (Exception $e) {
+        throw new Exception("Error al enviar el correo: {$mail->ErrorInfo}");
+    }
+}
+?>
