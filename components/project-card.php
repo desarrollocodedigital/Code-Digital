@@ -7,12 +7,19 @@
 // Definición de colores de marca basados en el campo 'color'
 $colorBrand = $proyecto['color'] === 'lima' ? 'brand-lime' : 'brand-cyan';
 $rgbShadow = $proyecto['color'] === 'lima' ? '178,255,5' : '0,229,255';
+
+// Fix path for subdirectories if image is relative
+$base_asset_path = $base_asset_path ?? '';
+$imageUrl = $proyecto['imagen_url'];
+if (strpos($imageUrl, 'http') !== 0 && strpos($imageUrl, '//') !== 0 && strpos($imageUrl, '/') !== 0) {
+    $imageUrl = $base_asset_path . $imageUrl;
+}
 ?>
 
 <div class="bg-white dark:bg-gray-800 rounded-[2.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 flex flex-col group hover:shadow-[0_8px_30px_rgb(<?php echo $rgbShadow; ?>,0.08)] dark:hover:shadow-[0_8px_30px_rgb(<?php echo $rgbShadow; ?>,0.15)] transition-all duration-300 hover:-translate-y-1">
     <!-- Miniatura e Indicador de Estado -->
     <div class="relative h-64 sm:h-72 overflow-hidden bg-gray-50 dark:bg-gray-700">
-        <img src="<?php echo $proyecto['imagen_url']; ?>" alt="<?php echo $proyecto['nombre']; ?>" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 mix-blend-multiply opacity-90 dark:opacity-75" />
+        <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($proyecto['nombre']); ?>" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 mix-blend-multiply opacity-90 dark:opacity-75" />
         
         <!-- Badge Flotante (Aparece al hover) -->
         <div class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 rounded-2xl shadow-xl z-20 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 border border-white dark:border-gray-700">

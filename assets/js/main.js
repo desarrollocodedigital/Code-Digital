@@ -215,33 +215,80 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') closeDemoModal();
     });
 
-    // --- LÓGICA DE ENVÍO DE FORMULARIOS ---
-    function handleFormSubmit(formId, successCallback) {
+    // --- LÓGICA DE ENVÍO DE FORMULARIOS UNIFICADA ---
+    async function handleFormSubmit(formId, successCallback) {
         const form = document.getElementById(formId);
         if (!form) return;
 
-        form.addEventListener('submit', (e) => {
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (!submitBtn) return;
+
+        // Referencias internas para feedback visual
+        const btnText = form.querySelector('[id*="btn-text"]');
+        const iconContainer = form.querySelector('[id*="btn-icon-container"]');
+        
+        const updateIcon = (iconName, animate = false) => {
+            if (!iconContainer) return;
+            iconContainer.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4 ${animate ? 'animate-spin' : ''}"></i>`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        };
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            // La validación de HTML5 (oninput, pattern, maxlength) ya filtra los 10 dígitos
             if (!form.checkValidity()) return;
 
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalContent = submitBtn.innerHTML;
+            const originalHTML = submitBtn.innerHTML;
+            const originalText = btnText ? btnText.innerText : '';
             
             // Estado de carga
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Enviando...';
-            lucide.createIcons();
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            if (btnText) btnText.innerText = 'Enviando...';
+            updateIcon('loader-2', true);
 
-            // Simulación de envío (1.5s)
-            setTimeout(() => {
-                successCallback();
+            const formData = new FormData(form);
+            
+            // Metadatos automáticos
+            if (formId === 'demo-form') {
+                formData.append('tipo', 'demo');
+                if (modalProjectName) formData.append('proyecto', modalProjectName.textContent);
+            } else {
+                formData.append('tipo', 'contacto');
+            }
+
+            try {
+                const apiPath = window.apiHandlerPath || 'api/contact_handler.php';
+                const response = await fetch(apiPath, { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (result.success) {
+                    if (btnText) btnText.innerText = '¡Enviado!';
+                    updateIcon('check-circle', false);
+                    submitBtn.classList.replace('bg-brand-cyan', 'bg-brand-lime');
+                    
+                    if (successCallback) successCallback();
+                    form.reset();
+
+                    setTimeout(() => {
+                        if (btnText) btnText.innerText = originalText;
+                        updateIcon('send', false);
+                        submitBtn.classList.replace('bg-brand-lime', 'bg-brand-cyan');
+                        submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                        submitBtn.disabled = false;
+                    }, 5000);
+                } else {
+                    alert('Error: ' + result.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalHTML;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hubo un error al procesar tu solicitud.');
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = originalContent;
-                lucide.createIcons();
-                form.reset();
-            }, 1500);
+                submitBtn.innerHTML = originalHTML;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
         });
     }
 
@@ -250,15 +297,21 @@ document.addEventListener('DOMContentLoaded', () => {
         handleFormSubmit('demo-form', () => {
             demoForm.classList.add('hidden');
             demoSuccess.classList.remove('hidden');
+            
+            // Cerrar el modal automáticamente después de 2 segundos
+            setTimeout(() => {
+                closeDemoModal();
+                // Opcional: Resetear la vista del modal para la próxima vez
+                setTimeout(() => {
+                    demoForm.classList.remove('hidden');
+                    demoSuccess.classList.add('hidden');
+                }, 500);
+            }, 2000);
         });
     }
 
-    const contactForm = document.getElementById('contact-form');
-    if (contactForm) {
-        handleFormSubmit('contact-form', () => {
-            alert('¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.');
-        });
-    }
+    // Inicialización global del formulario de contacto
+    handleFormSubmit('contact-form');
 
     // --- LÓGICA DEL MENÚ MÓVIL ---
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');

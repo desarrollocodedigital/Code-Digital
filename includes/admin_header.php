@@ -61,6 +61,14 @@ if ($msg_code) {
         case 'cliente_eliminado': $toast_msg = 'Cliente eliminado del sistema.'; $toast_icon = 'trash-2'; break;
         case 'mensaje_leido': $toast_msg = 'Mensaje CRM marcado como leído y procesado.'; break;
         case 'mensaje_eliminado': $toast_msg = 'Contacto CRM borrado permanentemente de la base de datos.'; $toast_icon = 'trash-2'; break;
+        case 'config_actualizada': $toast_msg = 'Configuración del sitio actualizada correctamente.'; break;
+        case 'creds_enviadas': $toast_msg = 'Credenciales marcadas como entregadas vía WhatsApp.'; break;
+        case 'lead_convertido': $toast_msg = 'El mensaje ha sido transformado en un Cliente Potencial.'; break;
+        case 'lead_creado': $toast_msg = 'Nuevo prospecto registrado exitosamente en el CRM.'; break;
+        case 'lead_modificado': $toast_msg = 'Se editó la información del prospecto correctamente.'; break;
+        case 'email_enviado': $toast_msg = 'El correo electrónico ha sido enviado y registrado en el CRM.'; break;
+        case 'plantilla_guardada': $toast_msg = 'La plantilla de correo se ha guardado correctamente.'; break;
+        case 'plantilla_eliminada': $toast_msg = 'Plantilla de correo eliminada permanentemente.'; $toast_icon = 'trash-2'; break;
     }
 }
 ?>
@@ -86,18 +94,14 @@ if ($msg_code) {
         setTimeout(() => {
             const toast = document.getElementById('toast-notification');
             if (toast) {
-                // Entrada animada
                 toast.classList.remove('translate-x-12', 'opacity-0');
-                
-                // Salida animada después de 4.5 segundos
                 setTimeout(() => {
                     toast.classList.add('translate-x-12', 'opacity-0');
-                    setTimeout(() => toast.remove(), 500); // 500ms es la duración de la transición
+                    setTimeout(() => toast.remove(), 500);
                 }, 4500);
             }
-        }, 100); // Pequeño retraso para que el navegador registre la transición de opacidad inicial
+        }, 100);
         
-        // Limpiar URL para no mostrar el Toast si se recarga la página
         if (window.history.replaceState) {
             const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + window.location.search.replace(/&?msg=[^&]*/g, '').replace(/^\?$/, '');
             window.history.replaceState({path: cleanUrl}, '', cleanUrl);
@@ -105,3 +109,41 @@ if ($msg_code) {
     });
 </script>
 <?php endif; ?>
+
+<script>
+    // Función Global para Toasts (Soporte AJAX) - Siempre disponible
+    window.showToast = function(message, icon = 'check-circle') {
+        const oldToast = document.getElementById('toast-notification');
+        if (oldToast) oldToast.remove();
+
+        const toastHtml = `
+        <div id="toast-notification" class="fixed top-24 right-6 lg:right-10 z-[100] bg-white dark:bg-gray-900 border border-brand-cyan/20 shadow-[0_10px_40px_rgba(0,229,255,0.15)] dark:shadow-[0_10px_40px_rgba(0,229,255,0.05)] rounded-2xl p-4 flex items-center gap-4 transform transition-all duration-500 translate-x-12 opacity-0">
+            <div class="w-10 h-10 rounded-full bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
+                <i data-lucide="${icon}" class="w-5 h-5"></i>
+            </div>
+            <div class="mr-4">
+                <h4 class="text-sm font-bold text-gray-900 dark:text-white">Operación Exitosa</h4>
+                <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">${message}</p>
+            </div>
+            <button onclick="document.getElementById('toast-notification').remove()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ml-auto absolute top-2 right-2 p-2">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+            </button>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', toastHtml);
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        const toast = document.getElementById('toast-notification');
+        setTimeout(() => {
+            if (toast) {
+                toast.classList.remove('translate-x-12', 'opacity-0');
+                setTimeout(() => {
+                    if (toast) {
+                        toast.classList.add('translate-x-12', 'opacity-0');
+                        setTimeout(() => toast.remove(), 500);
+                    }
+                }, 4500);
+            }
+        }, 10);
+    };
+</script>

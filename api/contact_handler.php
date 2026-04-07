@@ -16,30 +16,33 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-try {
-    $nombre = filter_input(INPUT_POST, 'nombre', FILTER_SANITIZE_STRING) ?? '';
-    $celular = filter_input(INPUT_POST, 'celular', FILTER_SANITIZE_STRING) ?? '';
-    $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL) ?? '';
-    $descripcion = filter_input(INPUT_POST, 'descripcion', FILTER_SANITIZE_STRING) ?? '';
+    try {
+    $nombre = $_POST['nombre'] ?? '';
+    $celular = $_POST['celular'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $descripcion = $_POST['descripcion'] ?? '';
+    $tipo = $_POST['tipo'] ?? 'contacto';
+    $proyecto = $_POST['proyecto'] ?? null;
 
     // Validaciones básicas
     if (empty($nombre) || empty($celular) || empty($email) || empty($descripcion)) {
-        throw new Exception('Todos los campos son obligatorios para poder conectar.');
+        throw new Exception('Todos los campos son obligatorios para poder procesar su solicitud.');
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         throw new Exception('El formato de correo electrónico no es válido.');
     }
 
-    // Inserción Blindada con PDO
-    $stmt = $pdo->prepare("INSERT INTO mensajes (nombre, celular, email, descripcion, estado) VALUES (?, ?, ?, ?, 'nuevo')");
-    $stmt->execute([$nombre, $celular, $email, $descripcion]);
+    // Inserción Blindada con PDO incluyendo los nuevos campos
+    $stmt = $pdo->prepare("INSERT INTO mensajes (nombre, celular, email, descripcion, tipo, proyecto, estado) VALUES (?, ?, ?, ?, ?, ?, 'nuevo')");
+    $result = $stmt->execute([$nombre, $celular, $email, $descripcion, $tipo, $proyecto]);
 
-    // Opcional: Podrías integrar envío de Email (mail() o PHPMailer) aquí
-    // mail("tu@correo.com", "Nuevo Lead: $nombre", "El usuario dejó este mensaje: $descripcion");
+    if (!$result) {
+        throw new Exception('No se pudo guardar la información en la base de datos.');
+    }
 
-    echo json_encode(['success' => true, 'message' => 'Mensaje capturado exitosamente. Nuestro equipo te contactará en breve.']);
+    echo json_encode(['success' => true, 'message' => 'Solicitud capturada exitosamente.']);
 } catch (Exception $e) {
     http_response_code(400);
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Error backend: ' . $e->getMessage()]);
 }

@@ -44,6 +44,18 @@
                         <span class="bg-brand-cyan text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full"><?php echo $unread_count; ?></span>
                     <?php endif; ?>
                 </a>
+                <a href="admin.php?tab=potenciales" id="nav-potenciales" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                    <span>C. Potenciales</span>
+                </a>
+                <a href="admin.php?tab=plantillas" id="nav-plantillas" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
+                    <i data-lucide="layout-template" class="w-5 h-5"></i>
+                    <span>Plantillas</span>
+                </a>
+                <a href="admin.php?tab=configuracion" id="nav-configuracion" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                    <span>Configuración</span>
+                </a>
             </nav>
 
             <!-- Footer Sidebar -->
