@@ -1,3 +1,4 @@
+<?php require_once '../includes/auth_guard.php'; ?>
 <?php
 /**
  * Página de Formulario: Plantillas de Correo

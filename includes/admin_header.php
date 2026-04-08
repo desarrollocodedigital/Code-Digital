@@ -69,6 +69,7 @@ if ($msg_code) {
         case 'email_enviado': $toast_msg = 'El correo electrónico ha sido enviado y registrado en el CRM.'; break;
         case 'plantilla_guardada': $toast_msg = 'La plantilla de correo se ha guardado correctamente.'; break;
         case 'plantilla_eliminada': $toast_msg = 'Plantilla de correo eliminada permanentemente.'; $toast_icon = 'trash-2'; break;
+        case 'pass_actualizada': $toast_msg = 'Tu contraseña ha sido actualizada. La seguridad de tu cuenta está al día.'; $toast_icon = 'lock'; break;
     }
 }
 ?>

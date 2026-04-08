@@ -8,9 +8,38 @@ include_once __DIR__ . '/../config/db.php';
 $proyectos = [];
 
 if (isset($pdo)) {
+    // --- Lógica de Paginación y Búsqueda ---
+    $p_items_per_page = 10;
+    $p_current_page = isset($_GET['p_p']) ? max(1, intval($_GET['p_p'])) : 1;
+    $p_search = $_GET['p_search'] ?? '';
+
+    $p_where_clauses = [];
+    $p_params = [];
+
+    if (!empty($p_search)) {
+        $p_where_clauses[] = "nombre LIKE :search";
+        $p_params['search'] = "%$p_search%";
+    }
+
+    $p_where = !empty($p_where_clauses) ? "WHERE " . implode(" AND ", $p_where_clauses) : "";
+
     try {
-        $stmt = $pdo->query("SELECT * FROM proyectos ORDER BY id ASC");
-        while ($row = $stmt->fetch()) {
+        // 1. Contar total de registros filtrados
+        $stmtTotal = $pdo->prepare("SELECT COUNT(*) as total FROM proyectos $p_where");
+        $stmtTotal->execute($p_params);
+        $p_total_items = $stmtTotal->fetch(PDO::FETCH_ASSOC)['total'];
+        $p_total_pages = ceil($p_total_items / $p_items_per_page);
+
+        // Ajustar página actual
+        if ($p_current_page > $p_total_pages && $p_total_pages > 0) $p_current_page = $p_total_pages;
+        $p_offset = ($p_current_page - 1) * $p_items_per_page;
+
+        // 2. Obtener registros paginados
+        $sql = "SELECT * FROM proyectos $p_where ORDER BY id ASC LIMIT $p_items_per_page OFFSET $p_offset";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($p_params);
+        
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $proyectos[] = [
                 'db_id' => $row['id'],
                 'id' => $row['slug'],
