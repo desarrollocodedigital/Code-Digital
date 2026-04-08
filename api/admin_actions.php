@@ -1,4 +1,5 @@
 <?php
+session_start();
 // Importar PHPMailer para el envío de plantillas
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -61,6 +62,9 @@ try {
             break;
         case 'send_template_email':
             sendTemplateEmail($pdo);
+            break;
+        case 'change_password':
+            changePassword($pdo);
             break;
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida: ' . $action]);
@@ -397,6 +401,7 @@ function sendTemplateEmail($pdo) {
     }
     
     $nombre_cliente = $client ? $client['nombre'] : 'Cliente';
+    if (strtolower($nombre_cliente) === 'test') $nombre_cliente = 'Cliente';
 
     $cuerpo_final = str_replace('{{nombre}}', $nombre_cliente, $template['cuerpo']);
     $cuerpo_final = str_replace('[[CONTENIDO_LIBRE]]', $mensaje_libre, $cuerpo_final);
@@ -441,5 +446,54 @@ function sendTemplateEmail($pdo) {
     } catch (Exception $e) {
         throw new Exception("Error al enviar el correo: {$mail->ErrorInfo}");
     }
+}
+
+/**
+ * Cambia la contraseña del usuario actual
+ */
+function changePassword($pdo) {
+    if (!isset($_SESSION['user_id'])) {
+        throw new Exception("Sesión no iniciada o caducada.");
+    }
+
+    $id = $_SESSION['user_id'];
+    $currentPassword = $_POST['current_password'] ?? '';
+    $newPassword = $_POST['new_password'] ?? '';
+    $confirmPassword = $_POST['confirm_password'] ?? '';
+
+    if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+        throw new Exception("Todos los campos son obligatorios.");
+    }
+
+    if ($newPassword !== $confirmPassword) {
+        throw new Exception("La nueva contraseña y la confirmación no coinciden.");
+    }
+
+    if (strlen($newPassword) < 6) {
+        throw new Exception("La nueva contraseña debe tener al menos 6 caracteres.");
+    }
+
+    // 1. Obtener la contraseña actual de la DB
+    $stmt = $pdo->prepare("SELECT password FROM usuarios WHERE id = ?");
+    $stmt->execute([$id]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$user) {
+        throw new Exception("Usuario no encontrado.");
+    }
+
+    // 2. Verificar contraseña actual
+    if (!password_verify($currentPassword, $user['password'])) {
+        throw new Exception("La contraseña actual es incorrecta.");
+    }
+
+    // 3. Hashear nueva contraseña
+    $newHash = password_hash($newPassword, PASSWORD_BCRYPT);
+
+    // 4. Actualizar en la DB
+    $stmtUpdate = $pdo->prepare("UPDATE usuarios SET password = ? WHERE id = ?");
+    $stmtUpdate->execute([$newHash, $id]);
+
+    echo json_encode(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
 }
 ?>

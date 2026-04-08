@@ -1,4 +1,5 @@
 <?php 
+require_once '../includes/auth_guard.php';
 include '../models/proyectos.php'; 
 include '../models/clientes.php'; 
 include '../models/mensajes.php'; 
@@ -261,6 +262,26 @@ include '../includes/admin_sidebar.php';
         </a>
     </div>
 
+    <!-- Buscador de Proyectos -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-3">
+            <h3 class="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                <i data-lucide="filter" class="w-3.5 h-3.5"></i> Vista de Portafolio
+            </h3>
+            <?php if(!empty($p_search)): ?>
+                <a href="?tab=proyectos&p_search=" class="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest ml-2">
+                    Limpiar Búsqueda
+                </a>
+            <?php endif; ?>
+        </div>
+        
+        <form method="GET" class="relative group min-w-[300px]">
+            <input type="hidden" name="tab" value="proyectos">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-brand-cyan transition-colors"></i>
+            <input type="text" name="p_search" value="<?php echo htmlspecialchars($p_search); ?>" placeholder="Buscar proyecto por nombre..." class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-brand-cyan/50 focus:ring-4 focus:ring-brand-cyan/5 transition-all md:min-w-[320px]">
+        </form>
+    </div>
+
     <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
         <div class="overflow-x-auto custom-scrollbar">
             <table class="w-full text-left min-w-[700px]">
@@ -268,27 +289,77 @@ include '../includes/admin_sidebar.php';
                     <th class="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest">Proyecto</th>
                     <th class="px-8 py-5 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Acciones</th>
                 </tr>
-                <?php foreach ($proyectos as $p): ?>
-                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all group border-b border-gray-50 dark:border-gray-800 last:border-0">
-                    <td class="px-8 py-6">
-                        <div class="flex items-center gap-4">
-                            <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 group-hover:border-brand-cyan transition-all"><?php echo $p['inicial_logo']; ?></div>
-                            <div>
-                                <div class="font-bold text-gray-900 dark:text-white"><?php echo $p['nombre']; ?></div>
-                                <div class="text-xs text-gray-500 font-medium truncate max-w-[200px]"><?php echo $p['tagline']; ?></div>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-8 py-6 text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <a href="admin_proyecto_form.php?id=<?php echo $p['db_id']; ?>" class="p-2.5 text-gray-400 hover:text-brand-cyan hover:bg-brand-cyan/10 rounded-xl transition-all"><i data-lucide="edit-3" class="w-5 h-5"></i></a>
-                            <button onclick="deleteItem('project', <?php echo $p['db_id']; ?>)" class="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                        </div>
-                    </td>
+                <?php if(empty($proyectos)): ?>
+                <tr>
+                    <td colspan="2" class="px-8 py-10 text-center text-gray-500 font-medium">No se encontraron proyectos con ese nombre.</td>
                 </tr>
-                <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($proyectos as $p): ?>
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-all group border-b border-gray-50 dark:border-gray-800 last:border-0">
+                        <td class="px-8 py-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-black text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 group-hover:border-brand-cyan transition-all"><?php echo $p['inicial_logo']; ?></div>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white"><?php echo $p['nombre']; ?></div>
+                                    <div class="text-xs text-gray-500 font-medium truncate max-w-[200px]"><?php echo $p['tagline']; ?></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-8 py-6 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="admin_proyecto_form.php?id=<?php echo $p['db_id']; ?>" class="p-2.5 text-gray-400 hover:text-brand-cyan hover:bg-brand-cyan/10 rounded-xl transition-all"><i data-lucide="edit-3" class="w-5 h-5"></i></a>
+                                <button onclick="deleteItem('project', <?php echo $p['db_id']; ?>)" class="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
             </table>
         </div>
+
+        <!-- Pagination Proyectos -->
+        <?php if($p_total_pages > 1): ?>
+        <div class="px-8 py-6 bg-gray-50/30 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div class="text-xs text-gray-500 font-medium tracking-tight">
+                Mostrando página <span class="text-gray-900 dark:text-white font-bold"><?php echo $p_current_page; ?></span> de <span class="text-gray-900 dark:text-white font-bold"><?php echo $p_total_pages; ?></span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Anterior -->
+                <?php if($p_current_page > 1): ?>
+                    <a href="?tab=proyectos&p_p=<?php echo $p_current_page - 1; ?>&p_search=<?php echo urlencode($p_search); ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-brand-cyan hover:text-brand-cyan transition-all">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+
+                <div class="flex items-center gap-1">
+                    <?php 
+                    $p_start = max(1, $p_current_page - 2);
+                    $p_end = min($p_total_pages, $p_current_page + 2);
+                    for($i = $p_start; $i <= $p_end; $i++): ?>
+                        <a href="?tab=proyectos&p_p=<?php echo $i; ?>&p_search=<?php echo urlencode($p_search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-bold transition-all <?php echo $i === $p_current_page ? 'bg-brand-cyan text-gray-900 shadow-md shadow-brand-cyan/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-brand-cyan/30'; ?>">
+                            <?php echo $i; ?>
+                        </a>
+                    <?php endfor; ?>
+                </div>
+
+                <!-- Siguiente -->
+                <?php if($p_current_page < $p_total_pages): ?>
+                    <a href="?tab=proyectos&p_p=<?php echo $p_current_page + 1; ?>&p_search=<?php echo urlencode($p_search); ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-brand-cyan hover:text-brand-cyan transition-all">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -360,6 +431,27 @@ include '../includes/admin_sidebar.php';
             <i data-lucide="send" class="w-4 h-4"></i>
             <span>Enviar Correo</span>
         </a>
+    </div>
+    
+    <!-- Filtros de Mensajes -->
+    <div class="flex flex-wrap items-center gap-3">
+        <a href="?tab=mensajes&status=all" class="px-5 py-2 rounded-xl text-xs font-bold transition-all <?php echo $filter_status === 'all' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-brand-cyan/30'; ?>">
+            Todos
+        </a>
+        <a href="?tab=mensajes&status=nuevo" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $filter_status === 'nuevo' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-brand-cyan/30'; ?>">
+            <span class="w-2 h-2 rounded-full bg-brand-cyan <?php echo $filter_status === 'nuevo' ? 'animate-pulse' : ''; ?>"></span>
+            No leídos
+        </a>
+        <a href="?tab=mensajes&status=leido" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $filter_status === 'leido' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-brand-cyan/30'; ?>">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+            Leídos
+        </a>
+        
+        <?php if($filter_status !== 'all'): ?>
+            <a href="?tab=mensajes&status=all" class="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest ml-2">
+                Limpiar Filtros
+            </a>
+        <?php endif; ?>
     </div>
 
     <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
@@ -477,6 +569,53 @@ include '../includes/admin_sidebar.php';
                 <?php endif; ?>
             </table>
         </div>
+        
+        <!-- Paginación de Mensajes -->
+        <?php if($total_pages > 1): ?>
+        <div class="px-8 py-5 border-t border-gray-50 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Página <span class="text-brand-cyan"><?php echo $current_page; ?></span> de <?php echo $total_pages; ?>
+                <span class="ml-2 text-[10px] opacity-50 font-medium">(<?php echo $total_items; ?> mensajes en total)</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Botón Anterior -->
+                <?php if($current_page > 1): ?>
+                    <a href="?tab=mensajes&status=<?php echo $filter_status; ?>&p=<?php echo $current_page - 1; ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-brand-cyan hover:text-brand-cyan transition-all">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Números de Página (Limitados para no desbordar) -->
+                <div class="flex items-center gap-1">
+                    <?php 
+                    $start_range = max(1, $current_page - 2);
+                    $end_range = min($total_pages, $current_page + 2);
+                    
+                    for($i = $start_range; $i <= $end_range; $i++): ?>
+                        <a href="?tab=mensajes&status=<?php echo $filter_status; ?>&p=<?php echo $i; ?>" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-bold transition-all <?php echo $i === $current_page ? 'bg-brand-cyan text-gray-900 shadow-md shadow-brand-cyan/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-brand-cyan/30'; ?>">
+                            <?php echo $i; ?>
+                        </a>
+                    <?php endfor; ?>
+                </div>
+
+                <!-- Botón Siguiente -->
+                <?php if($current_page < $total_pages): ?>
+                    <a href="?tab=mensajes&status=<?php echo $filter_status; ?>&p=<?php echo $current_page + 1; ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-brand-cyan hover:text-brand-cyan transition-all">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -490,6 +629,46 @@ include '../includes/admin_sidebar.php';
         <a href="admin_cliente_potencial_form.php" class="flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm font-sans flex-shrink-0">
             <i data-lucide="user-plus" class="w-4 h-4"></i> Nuevo Prospecto
         </a>
+    </div>
+
+    <!-- Filtros de Clientes Potenciales -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <!-- Filtros de Clientes Potenciales -->
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="?tab=potenciales&cp_status=all&search=<?php echo urlencode($cp_search); ?>" class="px-5 py-2 rounded-xl text-xs font-bold transition-all <?php echo $cp_filter_status === 'all' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                Todos
+            </a>
+            <a href="?tab=potenciales&cp_status=nuevo&search=<?php echo urlencode($cp_search); ?>" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $cp_filter_status === 'nuevo' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 <?php echo $cp_filter_status === 'nuevo' ? 'animate-pulse' : ''; ?>"></span>
+                Nuevos
+            </a>
+            <a href="?tab=potenciales&cp_status=en proceso&search=<?php echo urlencode($cp_search); ?>" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $cp_filter_status === 'en proceso' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                En Proceso
+            </a>
+            <a href="?tab=potenciales&cp_status=finalizado&search=<?php echo urlencode($cp_search); ?>" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $cp_filter_status === 'finalizado' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                <span class="w-2 h-2 rounded-full bg-lime-400"></span>
+                Finalizados
+            </a>
+            <a href="?tab=potenciales&cp_status=perdido&search=<?php echo urlencode($cp_search); ?>" class="px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 <?php echo $cp_filter_status === 'perdido' ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                <span class="w-2 h-2 rounded-full bg-red-400"></span>
+                Perdidos
+            </a>
+            
+            <?php if($cp_filter_status !== 'all' || !empty($cp_search)): ?>
+                <a href="?tab=potenciales&cp_status=all" class="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest ml-2">
+                    Limpiar Búsqueda
+                </a>
+            <?php endif; ?>
+        </div>
+
+        <!-- Buscador por Nombre -->
+        <form method="GET" class="relative group min-w-[300px]">
+            <input type="hidden" name="tab" value="potenciales">
+            <input type="hidden" name="cp_status" value="<?php echo htmlspecialchars($cp_filter_status); ?>">
+            <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
+            <input type="text" name="search" value="<?php echo htmlspecialchars($cp_search); ?>" placeholder="Buscar por nombre..." class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl py-2.5 pl-11 pr-4 text-xs font-medium focus:outline-none focus:border-indigo-500/50 focus:ring-4 focus:ring-indigo-500/5 transition-all md:min-w-[320px]">
+        </form>
     </div>
 
     <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
@@ -567,6 +746,51 @@ include '../includes/admin_sidebar.php';
                 <?php endif; ?>
             </table>
         </div>
+
+        <!-- Paginación de Clientes Potenciales -->
+        <?php if($cp_total_pages > 1): ?>
+        <div class="px-8 py-5 border-t border-gray-50 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-800/20 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                Página <span class="text-indigo-500"><?php echo $cp_current_page; ?></span> de <?php echo $cp_total_pages; ?>
+                <span class="ml-2 text-[10px] opacity-50 font-medium">(<?php echo $cp_total_items; ?> prospectos)</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <!-- Anterior -->
+                <?php if($cp_current_page > 1): ?>
+                    <a href="?tab=potenciales&cp_status=<?php echo $cp_filter_status; ?>&cp_p=<?php echo $cp_current_page - 1; ?>&search=<?php echo urlencode($cp_search); ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-indigo-500 hover:text-indigo-500 transition-all">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+
+                <div class="flex items-center gap-1">
+                    <?php 
+                    $cp_start = max(1, $cp_current_page - 2);
+                    $cp_end = min($cp_total_pages, $cp_current_page + 2);
+                    for($i = $cp_start; $i <= $cp_end; $i++): ?>
+                        <a href="?tab=potenciales&cp_status=<?php echo $cp_filter_status; ?>&cp_p=<?php echo $i; ?>&search=<?php echo urlencode($cp_search); ?>" class="w-10 h-10 flex items-center justify-center rounded-xl text-xs font-bold transition-all <?php echo $i === $cp_current_page ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20' : 'bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-800 hover:border-indigo-500/30'; ?>">
+                            <?php echo $i; ?>
+                        </a>
+                    <?php endfor; ?>
+                </div>
+
+                <!-- Siguiente -->
+                <?php if($cp_current_page < $cp_total_pages): ?>
+                    <a href="?tab=potenciales&cp_status=<?php echo $cp_filter_status; ?>&cp_p=<?php echo $cp_current_page + 1; ?>&search=<?php echo urlencode($cp_search); ?>" class="p-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 rounded-xl hover:border-indigo-500 hover:text-indigo-500 transition-all">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </a>
+                <?php else: ?>
+                    <div class="p-2.5 bg-white/50 dark:bg-gray-800/50 border border-gray-50 dark:border-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed">
+                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -586,6 +810,26 @@ include '../includes/admin_sidebar.php';
                 <input type="checkbox" data-clave="show_awards" class="sr-only peer config-switch" <?php echo ($ajustes['show_awards'] ?? '0') === '1' ? 'checked' : ''; ?>>
                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-cyan"></div>
             </label>
+        </div>
+
+        <div class="mt-8 pt-4 border-gray-100 dark:border-gray-800">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-10 h-10 rounded-xl bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
+                    <i data-lucide="lock" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-900 dark:text-white text-lg">Seguridad de la Cuenta</h3>
+                    <p class="text-sm text-gray-500">Actualiza tus credenciales de acceso periódicamente.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <button onclick="openModal('modal-change-password')" class="flex items-center gap-3 px-8 py-4 bg-gray-900 dark:bg-brand-cyan dark:text-gray-900 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10 dark:shadow-brand-cyan/20 text-sm uppercase tracking-widest group">
+                    <i data-lucide="shield-check" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    Cambiar Contraseña
+                </button>
+                <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest max-w-[200px] leading-relaxed">Última actualización recomendada: Cada 90 días.</p>
+            </div>
         </div>
     </div>
 </div>
@@ -637,9 +881,7 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 
-</div> <!-- Close content-container from sidebar include -->
-</main>
-</div> <!-- Close flex from sidebar include -->
+
 
 <!-- MODAL ENVIAR CORREO -->
 <div id="modal-send-mail" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
@@ -661,7 +903,7 @@ include '../includes/admin_sidebar.php';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Destinatario (Email)</label>
-                        <input type="email" name="email" id="mail-destinatario" required class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="cliente@ejemplo.com">
+                        <input type="email" name="email" id="mail-destinatario" required class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="cliente@ejemplo.com">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Seleccionar Plantilla</label>
@@ -674,9 +916,68 @@ include '../includes/admin_sidebar.php';
                     </div>
                 </div>
 
-    <!-- Scripts Adicionales para Tablas -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Cuerpo del Mensaje (Base)</label>
+                    <div id="mail-preview" class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-6 text-sm text-gray-500 min-h-[150px] whitespace-pre-wrap italic">
+                        Selecciona una plantilla para ver la base del mensaje...
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Contenido Adicional / Personalizado</label>
+                    <textarea name="mensaje_libre" rows="4" class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="Agrega detalles específicos para este cliente..."></textarea>
+                </div>
+
+                <button type="submit" class="w-full py-4 bg-brand-cyan text-gray-900 font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-brand-cyan/20 text-sm uppercase tracking-widest">
+                    Enviar Propuesta Ahora
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div id="modal-change-password" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] w-full max-w-lg overflow-hidden shadow-2xl scale-95 transition-all duration-300 border border-gray-100 dark:border-gray-800">
+        <div class="p-8 md:p-10">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                         <div class="w-8 h-8 rounded-lg bg-brand-cyan/10 flex items-center justify-center text-brand-cyan">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-gray-900 dark:text-white">Seguridad <span class="text-brand-cyan">.</span></h3>
+                    </div>
+                    <p class="text-sm text-gray-500">Actualiza tus credenciales de acceso.</p>
+                </div>
+                <button onclick="closeModal('modal-change-password')" class="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <form id="form-change-password" onsubmit="changePasswordAjax(event)" class="space-y-6">
+                <input type="hidden" name="action" value="change_password">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Contraseña Actual</label>
+                    <input type="password" name="current_password" required class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="••••••••">
+                </div>
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Nueva Contraseña</label>
+                        <input type="password" name="new_password" required class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="Min. 6 caracteres">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Confirmar Nueva Contraseña</label>
+                        <input type="password" name="confirm_password" required class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent rounded-2xl px-5 py-3.5 text-sm focus:ring-2 focus:ring-brand-cyan outline-none transition-all dark:text-white" placeholder="Repite la contraseña">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-4 bg-gray-900 dark:bg-brand-cyan dark:text-gray-900 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10 dark:shadow-brand-cyan/20 text-sm uppercase tracking-widest">
+                    Confirmar Cambio
+           
     <script>
-        // Marcar navegación activa
+        /**
+         * 1. NAVEGACIÓN Y UI GLOBAL
+         */
         const currentTab = "<?php echo $current_tab; ?>";
         const navEl = document.getElementById('nav-' + currentTab);
         if (navEl) {
@@ -684,13 +985,32 @@ include '../includes/admin_sidebar.php';
             navEl.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');
         }
 
-        // Lógica de Switches de Configuración
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        /**
+         * 2. MODALES
+         */
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            modal.querySelector('.bg-white, .bg-gray-900').classList.replace('scale-95', 'scale-100');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            modal.querySelector('.bg-white, .bg-gray-900').classList.replace('scale-100', 'scale-95');
+        }
+
+        /**
+         * 3. CONFIGURACIÓN Y AJUSTES
+         */
         document.querySelectorAll('.config-switch').forEach(checkbox => {
             checkbox.addEventListener('change', async function() {
                 const clave = this.dataset.clave;
                 const valor = this.checked ? '1' : '0';
-                
-                // Efecto visual instantáneo opcional
                 this.disabled = true;
                 
                 const formData = new FormData();
@@ -699,30 +1019,91 @@ include '../includes/admin_sidebar.php';
                 formData.append('valor', valor);
                 
                 try {
-                    const response = await fetch('../api/admin_actions.php', {
-                        method: 'POST',
-                        body: formData
-                    });
+                    const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
                     const result = await response.json();
-                    
                     if (result.success) {
                         window.showToast('Configuración actualizada correctamente', 'settings');
                     } else {
                         alert('Error al guardar: ' + result.message);
-                        this.checked = !this.checked; // Revertir
+                        this.checked = !this.checked;
                     }
                 } catch (error) {
                     alert('Error de conexión');
-                    this.checked = !this.checked; // Revertir
+                    this.checked = !this.checked;
                 } finally {
                     this.disabled = false;
                 }
             });
         });
 
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        // Cambio de Contraseña Asíncrono
+        async function changePasswordAjax(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const newPass = formData.get('new_password');
+            const confirmPass = formData.get('confirm_password');
+            
+            if (newPass !== confirmPass) {
+                alert('La nueva contraseña y la confirmación no coinciden.');
+                return;
+            }
+            if (newPass.length < 6) {
+                alert('La nueva contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
 
-        // --- SISTEMA DE PLANTILLAS Y ENVÍO ---
+            const btn = form.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.innerText = 'PROCESANDO...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    window.showToast('Contraseña actualizada correctamente', 'lock');
+                    form.reset();
+                    closeModal('modal-change-password');
+                } else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+            finally { btn.innerText = originalText; btn.disabled = false; }
+        }
+
+        /**
+         * 4. GESTIÓN DE CONTENIDO (ELIMINACIÓN)
+         */
+        async function deleteItem(type, id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este elemento?')) return;
+            const formData = new FormData();
+            let actionMsg = '';
+            if (type === 'project') {
+                formData.append('action', 'delete_project');
+                actionMsg = 'proyecto_eliminado';
+            } else if (type === 'potential_client') {
+                formData.append('action', 'delete_potential_client');
+                actionMsg = 'cliente_potencial_eliminado';
+            } else if (type === 'template') {
+                formData.append('action', 'delete_template');
+                actionMsg = 'plantilla_eliminada';
+            } else {
+                formData.append('action', 'delete_client');
+                actionMsg = 'cliente_eliminado';
+            }
+            formData.append('id', id);
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) {
+                    const finalMsg = (type === 'potential_client') ? 'cliente_eliminado' : actionMsg;
+                    window.location.href = `admin.php?tab=<?php echo $current_tab; ?>&msg=${finalMsg}`;
+                } else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+        }
+
+        /**
+         * 5. CRM Y MENSAJERÍA
+         */
         const formTemplate = document.getElementById('form-template');
         if (formTemplate) {
             formTemplate.addEventListener('submit', async (e) => {
@@ -736,121 +1117,62 @@ include '../includes/admin_sidebar.php';
                 } catch (error) { alert('Error de conexión'); }
             });
         }
+
+        async function markMsgRead(id) {
+            const formData = new FormData();
+            formData.append('action', 'read_message');
+            formData.append('id', id);
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) window.location.href = `admin.php?tab=mensajes&msg=mensaje_leido`;
+                else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+        }
+
+        async function deleteMsg(id) {
+            if (!confirm('¿Borrar permanentemente este mensaje?')) return;
+            const formData = new FormData();
+            formData.append('action', 'delete_message');
+            formData.append('id', id);
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) window.location.href = `admin.php?tab=mensajes&msg=mensaje_eliminado`;
+                else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+        }
+
+        async function markCredsSent(id) {
+            if (!confirm('¿Marcar como credenciales enviadas?')) return;
+            const formData = new FormData();
+            formData.append('action', 'mark_creds_sent');
+            formData.append('id', id);
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) window.location.href = `admin.php?tab=mensajes&msg=creds_enviadas`;
+                else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+        }
+
+        async function convertToLead(id) {
+            if (!confirm('¿Convertir este mensaje de contacto en un nuevo Cliente Potencial?')) return;
+            const formData = new FormData();
+            formData.append('action', 'convert_message_to_lead');
+            formData.append('id', id);
+            try {
+                const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
+                const result = await response.json();
+                if (result.success) window.location.href = `admin.php?tab=mensajes&msg=lead_convertido`;
+                else alert('Error: ' + result.message);
+            } catch (error) { alert('Error de conexión'); }
+        }
     </script>
 
-    <script>
-    async function deleteItem(type, id) {
-        if (!confirm('¿Estás seguro de que deseas eliminar este elemento?')) return;
-        
-        const formData = new FormData();
-        let actionMsg = '';
-        if (type === 'project') {
-            formData.append('action', 'delete_project');
-            actionMsg = 'proyecto_eliminado';
-        } else if (type === 'potential_client') {
-            formData.append('action', 'delete_potential_client');
-            actionMsg = 'cliente_potencial_eliminado';
-        } else if (type === 'template') {
-            formData.append('action', 'delete_template');
-            actionMsg = 'plantilla_eliminada';
-        } else {
-            formData.append('action', 'delete_client');
-            actionMsg = 'cliente_eliminado';
-        }
-
-        formData.append('id', id);
-
-        try {
-            const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) {
-                // Si es un lead, usamos el código genérico de cliente potencial para el toast
-                const finalMsg = (type === 'potential_client') ? 'cliente_eliminado' : actionMsg;
-                window.location.href = `admin.php?tab=<?php echo $current_tab; ?>&msg=${finalMsg}`;
-            } else {
-                alert('Error: ' + result.message);
-            }
-        } catch (error) {
-            console.error(error);
-            alert('Error de conexión');
-        }
-    }
-
-    async function markMsgRead(id) {
-        const formData = new FormData();
-        formData.append('action', 'read_message');
-        formData.append('id', id);
-        try {
-            const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) window.location.href = `admin.php?tab=mensajes&msg=mensaje_leido`;
-            else alert('Error: ' + result.message);
-        } catch (error) {
-            alert('Error de conexión');
-        }
-    }
-
-    async function deleteMsg(id) {
-        if (!confirm('¿Borrar permanentemente este mensaje?')) return;
-        const formData = new FormData();
-        formData.append('action', 'delete_message');
-        formData.append('id', id);
-        try {
-            const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) window.location.href = `admin.php?tab=mensajes&msg=mensaje_eliminado`;
-            else alert('Error: ' + result.message);
-        } catch (error) {
-            alert('Error de conexión');
-        }
-    }
-
-    async function markCredsSent(id) {
-        if (!confirm('¿Marcar como credenciales enviadas?')) return;
-        const formData = new FormData();
-        formData.append('action', 'mark_creds_sent');
-        formData.append('id', id);
-        try {
-            const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) window.location.href = `admin.php?tab=mensajes&msg=creds_enviadas`;
-            else alert('Error: ' + result.message);
-        } catch (error) {
-            alert('Error de conexión');
-        }
-    }
-
-    async function convertToLead(id) {
-        if (!confirm('¿Convertir este mensaje de contacto en un nuevo Cliente Potencial?')) return;
-        const formData = new FormData();
-        formData.append('action', 'convert_message_to_lead');
-        formData.append('id', id);
-        try {
-            const response = await fetch('../api/admin_actions.php', { method: 'POST', body: formData });
-            const result = await response.json();
-            if (result.success) {
-                window.location.href = `admin.php?tab=mensajes&msg=lead_convertido`;
-            } else {
-                alert('Error: ' + result.message);
-            }
-        } catch (error) {
-            alert('Error de conexión');
-        }
-    }
-
-    // --- MODALES ---
-    function openModal(id) {
-        const modal = document.getElementById(id);
-        modal.classList.remove('opacity-0', 'pointer-events-none');
-        modal.querySelector('.bg-white, .bg-gray-900').classList.replace('scale-95', 'scale-100');
-    }
-
-    function closeModal(id) {
-        const modal = document.getElementById(id);
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        modal.querySelector('.bg-white, .bg-gray-900').classList.replace('scale-100', 'scale-95');
-    }
-</script>
+    </div> <!-- Close content-container -->
+    </main> <!-- Close main -->
+</div> <!-- Close flex min-h-screen -->
 
 </body>
 </html>

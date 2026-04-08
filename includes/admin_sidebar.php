@@ -59,12 +59,16 @@
             </nav>
 
             <!-- Footer Sidebar -->
-            <div class="mt-auto pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center gap-3 px-2">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-cyan to-brand-lime flex items-center justify-center font-bold text-gray-900 uppercase text-xs">G</div>
-                <div>
-                    <div class="text-sm font-bold text-gray-900 dark:text-white">Gerardo G.</div>
-                    <div class="text-xs text-gray-500">Super Admin</div>
+            <div class="mt-auto pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between px-2">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-cyan to-brand-lime flex items-center justify-center font-bold text-gray-900 uppercase text-xs">S</div>
+                    <div>
+                        <div class="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-widest">Super Admin</div>
+                    </div>
                 </div>
+                <a href="../api/auth_handler.php?action=logout" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all" title="Cerrar Sesión">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                </a>
             </div>
         </div>
     </aside>
