@@ -61,6 +61,14 @@ CREATE TABLE IF NOT EXISTS visitas (
 
 ## [Historial de Versiones]
 
+### v2.2.0 (2026-04-09) - Optimización UX y Business Intelligence (Desarrollo)
+* **Analítica Avanzada (BI v2.1)**: Rediseño de Dashboard con gráficas omnicanal y métricas de tráfico en tiempo real.
+* **UX Predictiva**: Implementación de **Skeleton Screens** en tarjetas de proyecto y carrusel de detalles para eliminar tiempos de espera visual en blanco.
+* **Estabilidad de Navegación**: Migración del control de estados del sidebar de JavaScript a **PHP**, garantizando una navegación 100% fiable.
+* **Sincronización Horaria**: Configuración de `America/Mexico_City` y sincronización de sesión MySQL en `db.php` para precisión en reportes.
+* **UI/UX Consistent**: Estandarización de botones de navegación (Rounded XL) y limpieza de scripts redundantes en formularios administrativos.
+* **Estado**: Desplegado y evaluado con éxito en el servidor de **Desarrollo**.
+
 ### v1.0.0 (2026-04-08) - Versión Pública Inicial
 * Se ha subido el proyecto a su versión pública.
 * Inicio del seguimiento de cambios en este archivo.
