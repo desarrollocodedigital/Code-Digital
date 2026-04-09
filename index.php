@@ -22,6 +22,14 @@ $ajustes = getAjustes();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Estilos personalizados (Cache-Busting activo) -->
     <link rel="stylesheet" href="assets/css/style.css?v=<?php echo filemtime('assets/css/style.css'); ?>">
+    <!-- Script de inicialización de tema (Previene parpadeo) -->
+    <script>
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
 </head>
 <body class="font-sans min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300 selection:bg-brand-lime/30 dark:selection:bg-brand-cyan/30 selection:text-gray-900 dark:selection:text-white">
 

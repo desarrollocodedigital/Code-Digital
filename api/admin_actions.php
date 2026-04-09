@@ -66,6 +66,9 @@ try {
         case 'change_password':
             changePassword($pdo);
             break;
+        case 'delete_gallery_image':
+            deleteGalleryImage($pdo);
+            break;
         default:
             echo json_encode(['success' => false, 'message' => 'Acción no válida: ' . $action]);
     }
@@ -121,7 +124,9 @@ function saveProject($pdo) {
         'stat2_etiqueta' => $_POST['stat2_etiqueta'] ?? '',
         'stat3_valor' => $_POST['stat3_valor'] ?? '',
         'stat3_etiqueta' => $_POST['stat3_etiqueta'] ?? '',
-        'tecnologias' => $_POST['tecnologias'] ?? ''
+        'tecnologias' => $_POST['tecnologias'] ?? '',
+        'problema' => $_POST['problema'] ?? '',
+        'funcionalidades' => $_POST['funcionalidades'] ?? ''
     ];
 
     if ($id) {
@@ -133,19 +138,57 @@ function saveProject($pdo) {
                 stat1_valor = :stat1_valor, stat1_etiqueta = :stat1_etiqueta, 
                 stat2_valor = :stat2_valor, stat2_etiqueta = :stat2_etiqueta, 
                 stat3_valor = :stat3_valor, stat3_etiqueta = :stat3_etiqueta, 
-                tecnologias = :tecnologias 
+                tecnologias = :tecnologias, problema = :problema, funcionalidades = :funcionalidades 
                 WHERE id = :id";
         $data['id'] = $id;
     } else {
         // INSERT
         $sql = "INSERT INTO proyectos 
-                (slug, nombre, inicial_logo, tagline, descripcion, imagen_url, color, icono_estado, texto_estado, subtexto_estado, stat1_valor, stat1_etiqueta, stat2_valor, stat2_etiqueta, stat3_valor, stat3_etiqueta, tecnologias) 
+                (slug, nombre, inicial_logo, tagline, descripcion, imagen_url, color, icono_estado, texto_estado, subtexto_estado, stat1_valor, stat1_etiqueta, stat2_valor, stat2_etiqueta, stat3_valor, stat3_etiqueta, tecnologias, problema, funcionalidades) 
                 VALUES 
-                (:slug, :nombre, :inicial_logo, :tagline, :descripcion, :imagen_url, :color, :icono_estado, :texto_estado, :subtexto_estado, :stat1_valor, :stat1_etiqueta, :stat2_valor, :stat2_etiqueta, :stat3_valor, :stat3_etiqueta, :tecnologias)";
+                (:slug, :nombre, :inicial_logo, :tagline, :descripcion, :imagen_url, :color, :icono_estado, :texto_estado, :subtexto_estado, :stat1_valor, :stat1_etiqueta, :stat2_valor, :stat2_etiqueta, :stat3_valor, :stat3_etiqueta, :tecnologias, :problema, :funcionalidades)";
     }
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute($data);
+    $projectId = $id ? $id : $pdo->lastInsertId();
+
+    // 1. Eliminar imágenes marcadas de la galería
+    $imagenesEliminar = $_POST['imagenes_eliminar'] ?? [];
+    if (!empty($imagenesEliminar)) {
+        // Generar placeholders ?,?,?
+        $placeholders = implode(',', array_fill(0, count($imagenesEliminar), '?'));
+        $stmtDelImg = $pdo->prepare("SELECT imagen_url FROM proyecto_imagenes WHERE id IN ($placeholders)");
+        $stmtDelImg->execute($imagenesEliminar);
+        while ($img = $stmtDelImg->fetch()) {
+            $path = __DIR__ . '/../' . $img['imagen_url'];
+            if (file_exists($path)) {
+                unlink($path);
+            }
+        }
+        $stmtDelRows = $pdo->prepare("DELETE FROM proyecto_imagenes WHERE id IN ($placeholders)");
+        $stmtDelRows->execute($imagenesEliminar);
+    }
+
+    // 2. Subir nuevas imágenes de galería
+    if (isset($_FILES['galeria_archivos'])) {
+        $files = $_FILES['galeria_archivos'];
+        for ($i = 0; $i < count($files['name']); $i++) {
+            if ($files['error'][$i] === UPLOAD_ERR_OK) {
+                $ext = strtolower(pathinfo($files['name'][$i], PATHINFO_EXTENSION));
+                if (in_array($ext, ['png', 'jpg', 'jpeg'])) {
+                    $newName = 'gal_' . $projectId . '_' . time() . '_' . $i . '.' . $ext;
+                    $targetPath = __DIR__ . '/../assets/img/proyectos/' . $newName;
+                    if (move_uploaded_file($files['tmp_name'][$i], $targetPath)) {
+                        $url = 'assets/img/proyectos/' . $newName;
+                        $stmtGal = $pdo->prepare("INSERT INTO proyecto_imagenes (proyecto_id, imagen_url) VALUES (?, ?)");
+                        $stmtGal->execute([$projectId, $url]);
+                    }
+                }
+            }
+        }
+    }
+
     echo json_encode(['success' => true, 'message' => 'Proyecto guardado correctamente']);
 }
 
@@ -167,6 +210,18 @@ function deleteProject($pdo) {
             unlink($imgPath);
         }
     }
+    
+    // Eliminar imágenes de galería físicamente
+    $stmtGal = $pdo->prepare("SELECT imagen_url FROM proyecto_imagenes WHERE proyecto_id = ?");
+    $stmtGal->execute([$id]);
+    while ($img = $stmtGal->fetch()) {
+         $imgPath = __DIR__ . '/../' . $img['imagen_url'];
+         if (file_exists($imgPath)) {
+             unlink($imgPath);
+         }
+    }
+    // ON DELETE CASCADE en base de datos eliminará los registros de proyecto_imagenes al eliminar el proyecto
+
     
     $stmt = $pdo->prepare("DELETE FROM proyectos WHERE id = ?");
     $stmt->execute([$id]);
@@ -495,5 +550,32 @@ function changePassword($pdo) {
     $stmtUpdate->execute([$newHash, $id]);
 
     echo json_encode(['success' => true, 'message' => 'Contraseña actualizada correctamente.']);
+}
+
+/**
+ * Elimina una imagen individual de la galería (AJAX)
+ */
+function deleteGalleryImage($pdo) {
+    $id = $_POST['id'] ?? null;
+    if (!$id) throw new Exception("ID de imagen no proporcionado");
+
+    // 1. Obtener URL para borrar archivo físico
+    $stmt = $pdo->prepare("SELECT imagen_url FROM proyecto_imagenes WHERE id = ?");
+    $stmt->execute([$id]);
+    $img = $stmt->fetch();
+
+    if ($img) {
+        $path = __DIR__ . '/../' . $img['imagen_url'];
+        // Evitar borrar si es una imagen por defecto o ruta externa (si aplica)
+        if (file_exists($path) && !is_dir($path)) {
+            unlink($path);
+        }
+    }
+
+    // 2. Borrar registro de la DB
+    $stmtDel = $pdo->prepare("DELETE FROM proyecto_imagenes WHERE id = ?");
+    $stmtDel->execute([$id]);
+
+    echo json_encode(['success' => true, 'message' => 'Imagen eliminada exitosamente']);
 }
 ?>

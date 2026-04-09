@@ -57,8 +57,17 @@ if (isset($pdo)) {
                     ['valor' => $row['stat2_valor'], 'etiqueta' => $row['stat2_etiqueta']],
                     ['valor' => $row['stat3_valor'], 'etiqueta' => $row['stat3_etiqueta']]
                 ],
-                'tecnologias' => array_map('trim', explode(',', $row['tecnologias']))
+                'tecnologias' => array_map('trim', explode(',', $row['tecnologias'])),
+                'problema' => $row['problema'] ?? '',
+                'funcionalidades' => $row['funcionalidades'] ?? '',
+                'galeria' => [] // Se llenará a continuación
             ];
+            
+            // Obtener galería de imágenes si existe
+            $stmtGaleria = $pdo->prepare("SELECT imagen_url FROM proyecto_imagenes WHERE proyecto_id = ? ORDER BY orden ASC");
+            $stmtGaleria->execute([$row['id']]);
+            $galeria = $stmtGaleria->fetchAll(PDO::FETCH_COLUMN);
+            $proyectos[count($proyectos) - 1]['galeria'] = $galeria;
         }
     } catch (PDOException $e) {
         // En caso de error, podríamos cargar un log o un fallback

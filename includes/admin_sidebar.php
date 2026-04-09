@@ -48,6 +48,10 @@
                     <i data-lucide="user-plus" class="w-5 h-5"></i>
                     <span>C. Potenciales</span>
                 </a>
+                <a href="admin.php?tab=metricas" id="nav-metricas" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
+                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                    <span>Métricas</span>
+                </a>
                 <a href="admin.php?tab=plantillas" id="nav-plantillas" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
                     <i data-lucide="layout-template" class="w-5 h-5"></i>
                     <span>Plantillas</span>

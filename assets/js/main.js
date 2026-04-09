@@ -13,15 +13,73 @@ tailwind.config = {
     }
 }
 
-// Prevención de destellos (FOUC) en el cambio de tema
-if (localStorage.getItem('color-theme') === 'dark') {
-    document.documentElement.classList.add('dark');
-} else {
-    document.documentElement.classList.remove('dark');
-}
+// Nota: La inicialización de la clase 'dark' se hace ahora directamente en el <head> de los archivos HTML
+// para evitar el FOUC (Flash of Unstyled Content).
 
 // Inicialización de componentes al cargar el DOM
 document.addEventListener('DOMContentLoaded', () => {
+    // --- MOTOR DE TRACKING (ANALÍTICA INTERNA) ---
+    window.trackEvent = async function(type, page = window.location.pathname.split('/').pop() || 'index.php', metadata = null) {
+        try {
+            // Detectar si estamos en una subcarpeta (views) para ajustar la ruta
+            const isSubfolder = window.location.pathname.includes('/views/');
+            const apiPath = isSubfolder ? '../api/track_event.php' : 'api/track_event.php';
+
+            await fetch(apiPath, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, page, metadata }),
+                keepalive: true // CRÍTICO: Evita que se cancele la petición al navegar
+            });
+        } catch (e) { console.error('Tracking error:', e); }
+    };
+
+    // Listeners Automáticos para CTAs
+    document.addEventListener('click', (e) => {
+        const target = e.target.closest('a, button');
+        if (!target) return;
+
+        // Limpiar el texto: quitar espacios, convertir a minúsculas y quitar caracteres de iconos
+        const text = target.innerText.toLowerCase().trim();
+        const href = target.getAttribute('href') || '';
+
+        // 1. Evento: Agendar (WhatsApp)
+        if (text.includes('agendar') || href.includes('wa.me')) {
+            trackEvent('agendar');
+        }
+        // 2. Evento: Hablar con un experto
+        else if (text.includes('experto')) {
+            trackEvent('experto');
+        }
+        // 3. Evento: Iniciar Proyecto
+        else if (text.includes('iniciar mi proyecto')) {
+            trackEvent('iniciar_proyecto');
+        }
+        // 4. Evento: Solicitar Demo (con nombre de proyecto)
+        else if (text.includes('solicitar demo')) {
+            const projectTitle = target.getAttribute('data-project-name') || 
+                               target.closest('.group')?.querySelector('.flex.items-center.gap-3 span')?.innerText || 
+                               'Desconocido';
+            trackEvent('solicitar_demo', undefined, projectTitle.trim());
+        }
+        // 5. Evento: Ver Caso (con nombre de proyecto)
+        else if (text.includes('ver caso')) {
+            const projectTitle = target.closest('.group')?.querySelector('.flex.items-center.gap-3 span')?.innerText || 
+                               'Desconocido';
+            trackEvent('ver_caso', undefined, projectTitle.trim());
+        }
+        // 6. Evento: Formulario de Contacto (Landing)
+        else if (text.includes('enviar mensaje') && !target.closest('.chat-window')) {
+            trackEvent('contacto_formulario');
+        }
+    });
+
+    // --- TRACKING AUTOMÁTICO DE VISITAS (SOLO EN INDEX) ---
+    const isIndex = window.location.pathname.endsWith('index.php') || window.location.pathname === '/' || window.location.pathname.endsWith('Code-Digital/');
+    if (isIndex) {
+        trackEvent('visita');
+    }
+
     // Inicializar íconos de Lucide
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -39,25 +97,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const lightIcon = document.getElementById('theme-toggle-light-icon');
 
     if (themeToggleBtn && darkIcon && lightIcon) {
-        // Mostrar el icono correcto al cargar
+        // Mostrar el icono opuesto al tema actual para indicar la acción a realizar
         if (document.documentElement.classList.contains('dark')) {
-            darkIcon.classList.remove('hidden');
-        } else {
             lightIcon.classList.remove('hidden');
+            darkIcon.classList.add('hidden');
+        } else {
+            darkIcon.classList.remove('hidden');
+            lightIcon.classList.add('hidden');
         }
 
         themeToggleBtn.addEventListener('click', function() {
-            // Alternar iconos
-            darkIcon.classList.toggle('hidden');
-            lightIcon.classList.toggle('hidden');
-
             // Alternar tema y guardar preferencia
             if (document.documentElement.classList.contains('dark')) {
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('color-theme', 'light');
+                // Cambiar icono a Luna (para indicar que puede volver a oscuro)
+                darkIcon.classList.remove('hidden');
+                lightIcon.classList.add('hidden');
             } else {
                 document.documentElement.classList.add('dark');
                 localStorage.setItem('color-theme', 'dark');
+                // Cambiar icono a Sol (para indicar que puede volver a claro)
+                lightIcon.classList.remove('hidden');
+                darkIcon.classList.add('hidden');
             }
         });
     }
@@ -72,13 +134,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatSendBtn = document.getElementById('chat-send-btn');
 
     if (chatToggleBtn && chatWindow) {
-        function toggleChat() {
+        function toggleChat(isManual = false) {
             const isOpen = chatWindow.classList.contains('opacity-100');
             
             if (!isOpen) {
                 // Abrir animación
                 chatWindow.classList.remove('hidden'); // Mostrar físicamente en el DOM
                 
+                // Track Event: Solo si es una interacción manual del usuario
+                if (isManual && window.trackEvent) window.trackEvent('soporte');
+
                 // Forzar reflow para animación
                 void chatWindow.offsetWidth;
 
@@ -113,10 +178,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // --- APERTURA AUTOMÁTICA CON ANIMACIÓN ---
-        // Se abre el chat con un pequeño retraso para notar el efecto
+        // Pasamos isManual = false (por defecto) para NO trackear esto
         setTimeout(() => {
             if (chatWindow.classList.contains('opacity-0')) {
-                toggleChat();
+                toggleChat(false);
             }
         }, 800);
 
@@ -124,6 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         function sendToWhatsApp() {
             const message = chatInput.value.trim();
             if (message) {
+                // Track Event: Soporte (Confirmación de envío)
+                if (window.trackEvent) window.trackEvent('soporte');
+
                 const phoneNumber = '526672644610';
                 const header = "Soporte Code Digital";
                 const fullMessage = `${header}\n\n${message}`;
@@ -134,9 +202,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        chatToggleBtn.addEventListener('click', toggleChat);
+        chatToggleBtn.addEventListener('click', () => toggleChat(true));
         if (chatCloseBtn) {
-            chatCloseBtn.addEventListener('click', toggleChat);
+            chatCloseBtn.addEventListener('click', () => toggleChat(true));
         }
 
         // Listener para el botón de enviar
