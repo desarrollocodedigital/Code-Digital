@@ -142,8 +142,13 @@ $bgBrand = $proyectoActual['color'] === 'lima' ? 'bg-brand-lime' : 'bg-brand-cya
         <!-- HERO SECTION INMERSIVO (Imagen de Fondo) -->
         <section class="relative min-h-[60vh] pt-24 flex items-center justify-start overflow-hidden bg-gray-900 border-b border-gray-800 transition-colors duration-300">
             <!-- Capa de Imagen de Fondo -->
-            <div class="absolute inset-0 z-0">
-                <img src="../<?php echo $proyectoActual['imagen_url']; ?>" alt="" class="w-full h-full object-cover opacity-60">
+            <div class="absolute inset-0 z-0 bg-gray-800 animate-pulse">
+                <img 
+                    src="../<?php echo $proyectoActual['imagen_url']; ?>" 
+                    alt="" 
+                    class="w-full h-full object-cover opacity-0 transition-opacity duration-1000"
+                    onload="this.classList.replace('opacity-0', 'opacity-60'); this.parentElement.classList.remove('animate-pulse', 'bg-gray-800');"
+                >
                 <!-- Overlay de Gradiente para legibilidad -->
                 <div class="absolute inset-0 bg-gradient-to-tr from-gray-900 via-gray-900/40 to-transparent transition-colors duration-300"></div>
                 <!-- Destellos ambientales sutiles -->
@@ -273,8 +278,19 @@ $bgBrand = $proyectoActual['color'] === 'lima' ? 'bg-brand-lime' : 'bg-brand-cya
                         $totalImagenes = count($proyectoActual['galeria']);
                         foreach($proyectoActual['galeria'] as $index => $imgUrl): 
                         ?>
-                            <div class="swiper-slide bg-gray-900 cursor-pointer" onclick="openLightbox(<?php echo $index; ?>)">
-                                <img src="../<?php echo $imgUrl; ?>" class="w-full h-auto object-contain max-h-[70vh] mx-auto" alt="Captura del sistema">
+                            <div class="swiper-slide bg-gray-200 dark:bg-gray-800 animate-pulse cursor-pointer relative" onclick="openLightbox(<?php echo $index; ?>)">
+                                <img 
+                                    src="../<?php echo $imgUrl; ?>" 
+                                    class="w-full h-auto object-contain max-h-[70vh] mx-auto opacity-0 transition-opacity duration-700" 
+                                    alt="Captura del sistema"
+                                    onload="this.classList.remove('opacity-0'); this.parentElement.classList.remove('animate-pulse', 'bg-gray-200');"
+                                    onerror="this.style.display='none'; this.parentElement.querySelector('.image-fallback').classList.remove('hidden'); this.parentElement.classList.remove('animate-pulse');"
+                                >
+                                <!-- Fallback para galería -->
+                                <div class="image-fallback hidden absolute inset-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-600 p-12 text-center">
+                                    <i data-lucide="image-off" class="w-12 h-12 mb-4 opacity-20"></i>
+                                    <span class="text-xs font-bold uppercase tracking-widest opacity-40">Captura no disponible</span>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     </div>

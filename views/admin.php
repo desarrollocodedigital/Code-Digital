@@ -1282,7 +1282,6 @@ include '../includes/admin_sidebar.php';
          * 1. NAVEGACIÓN Y UI GLOBAL
          */
         const currentTab = "<?php echo $current_tab; ?>";
-        const navEl = document.getElementById('nav-' + currentTab);
 
         // --- INICIALIZACIÓN DE GRÁFICA DE VISITAS ---
         if (currentTab === 'metricas') {
@@ -1411,11 +1410,6 @@ include '../includes/admin_sidebar.php';
                 }
             }
         }
-        if (navEl) {
-            navEl.classList.remove('text-gray-500', 'dark:text-gray-400');
-            navEl.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');
-        }
-
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
         /**
