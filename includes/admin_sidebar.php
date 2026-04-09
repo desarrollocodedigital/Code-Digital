@@ -21,45 +21,34 @@
             </div>
 
             <!-- Navigation -->
+            <?php $tab_activa = $_GET['tab'] ?? 'dashboard'; ?>
             <nav class="flex-1 space-y-2">
-                <a href="admin.php?tab=dashboard" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="admin.php?tab=proyectos" id="nav-proyectos" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="briefcase" class="w-5 h-5"></i>
-                    <span>Proyectos</span>
-                </a>
-                <a href="admin.php?tab=clientes" id="nav-clientes" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="users" class="w-5 h-5"></i>
-                    <span>Clientes</span>
-                </a>
-                <?php include_once __DIR__ . '/../models/mensajes.php'; ?>
-                <a href="admin.php?tab=mensajes" id="nav-mensajes" class="relative w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <div class="flex items-center gap-3">
-                        <i data-lucide="mail" class="w-5 h-5"></i>
-                        <span>Mensajes</span>
-                    </div>
-                    <?php if(isset($unread_count) && $unread_count > 0): ?>
-                        <span class="bg-brand-cyan text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full"><?php echo $unread_count; ?></span>
-                    <?php endif; ?>
-                </a>
-                <a href="admin.php?tab=potenciales" id="nav-potenciales" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="user-plus" class="w-5 h-5"></i>
-                    <span>C. Potenciales</span>
-                </a>
-                <a href="admin.php?tab=metricas" id="nav-metricas" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
-                    <span>Métricas</span>
-                </a>
-                <a href="admin.php?tab=plantillas" id="nav-plantillas" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="layout-template" class="w-5 h-5"></i>
-                    <span>Plantillas</span>
-                </a>
-                <a href="admin.php?tab=configuracion" id="nav-configuracion" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white border border-transparent font-semibold group transition-all">
-                    <i data-lucide="settings" class="w-5 h-5"></i>
-                    <span>Configuración</span>
-                </a>
+                <?php 
+                $nav_items = [
+                    ['id' => 'dashboard', 'label' => 'Dashboard', 'icon' => 'layout-dashboard'],
+                    ['id' => 'proyectos', 'label' => 'Proyectos', 'icon' => 'briefcase'],
+                    ['id' => 'clientes', 'label' => 'Clientes', 'icon' => 'users'],
+                    ['id' => 'mensajes', 'label' => 'Mensajes', 'icon' => 'mail', 'badge' => true],
+                    ['id' => 'potenciales', 'label' => 'C. Potenciales', 'icon' => 'user-plus'],
+                    ['id' => 'metricas', 'label' => 'Métricas', 'icon' => 'bar-chart-3'],
+                    ['id' => 'plantillas', 'label' => 'Plantillas', 'icon' => 'layout-template'],
+                    ['id' => 'configuracion', 'label' => 'Configuración', 'icon' => 'settings'],
+                ];
+
+                foreach ($nav_items as $item): 
+                    $isActive = ($tab_activa === $item['id']);
+                    $activeClasses = $isActive ? 'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/20' : 'text-gray-500 dark:text-gray-400 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white';
+                ?>
+                    <a href="admin.php?tab=<?php echo $item['id']; ?>" id="nav-<?php echo $item['id']; ?>" class="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border font-semibold group transition-all <?php echo $activeClasses; ?>">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="<?php echo $item['icon']; ?>" class="w-5 h-5"></i>
+                            <span><?php echo $item['label']; ?></span>
+                        </div>
+                        <?php if(isset($item['badge']) && $item['badge'] && isset($unread_count) && $unread_count > 0): ?>
+                             <span class="bg-brand-cyan text-gray-900 text-[10px] font-black px-2 py-0.5 rounded-full"><?php echo $unread_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
             </nav>
 
             <!-- Footer Sidebar -->

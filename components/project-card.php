@@ -18,8 +18,22 @@ if (strpos($imageUrl, 'http') !== 0 && strpos($imageUrl, '//') !== 0 && strpos($
 
 <div class="bg-white dark:bg-gray-800 rounded-[2.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-gray-100 dark:border-gray-700 flex flex-col group hover:shadow-[0_8px_30px_rgb(<?php echo $rgbShadow; ?>,0.08)] dark:hover:shadow-[0_8px_30px_rgb(<?php echo $rgbShadow; ?>,0.15)] transition-all duration-300 hover:-translate-y-1">
     <!-- Miniatura e Indicador de Estado -->
-    <div class="relative h-64 sm:h-72 overflow-hidden bg-gray-50 dark:bg-gray-700">
-        <img src="<?php echo htmlspecialchars($imageUrl); ?>" alt="<?php echo htmlspecialchars($proyecto['nombre']); ?>" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 mix-blend-multiply opacity-90 dark:opacity-75" />
+    <div class="relative h-64 sm:h-72 overflow-hidden bg-gray-200 dark:bg-gray-700 animate-pulse transition-colors duration-500">
+        <?php if (!empty($proyecto['imagen_url'])): ?>
+            <img 
+                src="<?php echo htmlspecialchars($imageUrl); ?>" 
+                alt="<?php echo htmlspecialchars($proyecto['nombre']); ?>" 
+                class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-all duration-700 mix-blend-multiply opacity-0 dark:opacity-0" 
+                onload="this.classList.remove('opacity-0'); this.classList.add('opacity-90', 'dark:opacity-75'); this.parentElement.classList.remove('animate-pulse', 'bg-gray-200');"
+                onerror="this.style.display='none'; this.parentElement.querySelector('.image-fallback').classList.remove('hidden'); this.parentElement.classList.remove('animate-pulse');"
+            />
+        <?php endif; ?>
+
+        <!-- Fallback para cuando no hay imagen o falla la carga -->
+        <div class="image-fallback hidden absolute inset-0 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 p-6 text-center">
+            <i data-lucide="image-off" class="w-10 h-10 mb-2 opacity-20"></i>
+            <span class="text-[10px] font-bold uppercase tracking-widest opacity-40">Imagen no disponible</span>
+        </div>
         
         <!-- Badge Flotante (Aparece al hover) -->
         <div class="absolute bottom-6 left-6 right-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md p-4 rounded-2xl shadow-xl z-20 transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 border border-white dark:border-gray-700">

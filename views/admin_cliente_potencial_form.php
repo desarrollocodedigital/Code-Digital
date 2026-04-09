@@ -23,7 +23,7 @@ include '../includes/admin_sidebar.php';
 <div class="p-6 lg:p-10 max-w-4xl mx-auto animate-fade-in w-full">
     <!-- Encabezado con Botón de Regreso -->
     <div class="flex items-center gap-4 mb-8">
-        <a href="admin.php?tab=potenciales" class="w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 hover:text-indigo-500 hover:border-indigo-500 transition-all shadow-sm">
+        <a href="admin.php?tab=potenciales" class="p-2.5 bg-white dark:bg-gray-900 text-gray-500 hover:text-brand-cyan rounded-xl border border-gray-100 dark:border-gray-800 transition-all shadow-sm">
             <i data-lucide="arrow-left" class="w-5 h-5"></i>
         </a>
         <div>
@@ -113,13 +113,6 @@ include '../includes/admin_sidebar.php';
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof lucide !== 'undefined') lucide.createIcons();
     
-    // Marcar item en el sidebar
-    const navItem = document.getElementById('nav-potenciales');
-    if (navItem) {
-        navItem.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');
-        navItem.classList.remove('text-gray-500', 'dark:text-gray-400');
-    }
-
     const form = document.getElementById('potential-client-form');
     if (form) {
         form.addEventListener('submit', async (e) => {
