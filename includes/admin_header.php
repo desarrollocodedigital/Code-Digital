@@ -27,6 +27,14 @@
             }
         }
     </script>
+    <script>
+        // --- SCRIPT ANTI-FLASH PARA DARK MODE ---
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Global JS (Dark Mode, etc) -->

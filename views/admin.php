@@ -31,6 +31,9 @@ if ($current_tab === 'proyectos') {
 } elseif ($current_tab === 'plantillas') {
     $title = "Plantillas";
     $page_title = "Gestión de Correos";
+} elseif ($current_tab === 'metricas') {
+    $title = "Métricas";
+    $page_title = "Análisis de Datos y Rendimiento";
 }
 
 // Lógica de Actividad Reciente para el Dashboard
@@ -63,6 +66,119 @@ usort($actividades, function($a, $b) {
     return strtotime($b['fecha']) - strtotime($a['fecha']);
 });
 $actividades_recientes = array_slice($actividades, 0, 5);
+
+// --- LÓGICA DE MÉTRICAS REALES ---
+if ($current_tab === 'metricas' || $current_tab === 'dashboard') {
+    $periodo = $_GET['periodo'] ?? '7d';
+    $whereClause = "";
+    if ($periodo === '7d') {
+        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+    } elseif ($periodo === '30d') {
+        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+    }
+
+    // Totales por tipo
+    $stmtMetricas = $pdo->query("SELECT evento_tipo, COUNT(*) as total FROM eventos_tracking $whereClause GROUP BY evento_tipo");
+    $metricasRaw = $stmtMetricas->fetchAll();
+    $metricasReal = [
+        'agendar' => 0,
+        'experto' => 0,
+        'soporte' => 0,
+        'iniciar_proyecto' => 0,
+        'solicitar_demo' => 0,
+        'ver_caso' => 0,
+        'contacto_formulario' => 0
+    ];
+    foreach ($metricasRaw as $m) {
+        if (isset($metricasReal[$m['evento_tipo']])) {
+            $metricasReal[$m['evento_tipo']] = $m['total'];
+        }
+    }
+    
+    // Top Fuentes (Páginas)
+    $stmtFuentes = $pdo->query("SELECT pagina_origen, COUNT(*) as total FROM eventos_tracking $whereClause GROUP BY pagina_origen ORDER BY total DESC LIMIT 5");
+    $fuentesTop = $stmtFuentes->fetchAll();
+
+    // --- RANKING DE PROYECTOS TOP (Basado en Interés) ---
+    $stmtRankingProyectos = $pdo->query("SELECT metadata as proyecto, COUNT(*) as total FROM eventos_tracking $whereClause AND evento_tipo IN ('ver_caso', 'solicitar_demo') AND metadata IS NOT NULL AND metadata != '' GROUP BY metadata ORDER BY total DESC LIMIT 5");
+    $rankingProyectos = $stmtRankingProyectos->fetchAll();
+
+    // --- DETERMINAR PERIODO PARA GRÁFICAS ---
+    $diasHistoricos = 30;
+    $labelPeriodo = "Últimos 30 días";
+    
+    if ($periodo === '7d') {
+        $diasHistoricos = 7;
+        $labelPeriodo = "Últimos 7 días";
+    } elseif ($periodo === '30d') {
+        $diasHistoricos = 30;
+        $labelPeriodo = "Últimos 30 días";
+    } elseif ($periodo === 'all') {
+        $diasHistoricos = 90;
+        $labelPeriodo = "Histórico (90 días)";
+    }
+
+    // --- DATOS PARA LA GRÁFICA DE VISITAS ---
+    $stmtVisitas = $pdo->prepare("SELECT fecha, COUNT(*) as total FROM visitas WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY fecha ORDER BY fecha ASC");
+    $stmtVisitas->execute([$diasHistoricos]);
+    $visitasRaw = $stmtVisitas->fetchAll();
+
+    // --- DATOS PARA LA GRÁFICA DE MENSAJES (WhatsApp) ---
+    $stmtMensajes = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('experto', 'soporte') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
+    $stmtMensajes->execute([$diasHistoricos]);
+    $mensajesRaw = $stmtMensajes->fetchAll();
+
+    // --- DATOS PARA LA GRÁFICA DE CONVERSIÓN TOTAL ---
+    $stmtContactos = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte', 'contacto_formulario', 'solicitar_demo') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
+    $stmtContactos->execute([$diasHistoricos]);
+    $contactosRaw = $stmtContactos->fetchAll();
+
+    $labelsVisitas = [];
+    $dataVisitas = [];
+    $dataMensajes = [];
+    $dataContactos = []; // Nueva data para conversión total
+    $iteradorFecha = new DateTime("-".($diasHistoricos-1)." days");
+    
+    for ($i = 0; $i < $diasHistoricos; $i++) {
+        $fechaKey = $iteradorFecha->format('Y-m-d');
+        $labelsVisitas[] = $iteradorFecha->format('d M');
+        
+        // Data Visitas
+        $encVisita = false;
+        foreach ($visitasRaw as $vr) {
+            if ($vr['fecha'] === $fechaKey) {
+                $dataVisitas[] = $vr['total'];
+                $encVisita = true;
+                break;
+            }
+        }
+        if (!$encVisita) $dataVisitas[] = 0;
+
+        // Data Mensajes
+        $encMensaje = false;
+        foreach ($mensajesRaw as $mr) {
+            if ($mr['dia'] === $fechaKey) {
+                $dataMensajes[] = $mr['total'];
+                $encMensaje = true;
+                break;
+            }
+        }
+        if (!$encMensaje) $dataMensajes[] = 0;
+
+        // Data Contactos Totales
+        $encContacto = false;
+        foreach ($contactosRaw as $cr) {
+            if ($cr['dia'] === $fechaKey) {
+                $dataContactos[] = $cr['total'];
+                $encContacto = true;
+                break;
+            }
+        }
+        if (!$encContacto) $dataContactos[] = 0;
+
+        $iteradorFecha->modify('+1 day');
+    }
+}
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -881,6 +997,190 @@ include '../includes/admin_sidebar.php';
     </div>
 </div>
 
+<!-- TAB MÉTRICAS -->
+<div id="tab-metricas" class="p-6 lg:p-10 space-y-8 animate-fade-in <?php echo $current_tab === 'metricas' ? 'block' : 'hidden'; ?>">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-3xl font-black tracking-tight text-gray-900 dark:text-white">Métricas Avanzadas <span class="text-brand-lime">.</span></h2>
+            <p class="text-gray-500 dark:text-gray-400 mt-2 font-medium">Análisis en tiempo real de tu impacto digital.</p>
+        </div>
+        <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm">
+            <a href="?tab=metricas&periodo=7d" class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?php echo $periodo === '7d' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'text-gray-500 hover:text-brand-cyan'; ?>">7 Días</a>
+            <a href="?tab=metricas&periodo=30d" class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?php echo $periodo === '30d' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'text-gray-500 hover:text-brand-cyan'; ?>">30 Días</a>
+            <a href="?tab=metricas&periodo=all" class="px-4 py-2 rounded-xl text-xs font-bold transition-all <?php echo $periodo === 'all' ? 'bg-brand-cyan text-gray-900 shadow-lg shadow-brand-cyan/20' : 'text-gray-500 hover:text-brand-cyan'; ?>">Histórico</a>
+        </div>
+    </div>
+
+    <!-- Grid de Métricas Principales -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <!-- Agendar -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-brand-cyan/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-brand-cyan/10 rounded-xl flex items-center justify-center text-brand-cyan">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Agendar llamada</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['agendar']; ?></div>
+        </div>
+
+        <!-- Experto -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-brand-lime/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-brand-lime/10 rounded-xl flex items-center justify-center text-brand-lime">
+                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Contactar Experto</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['experto']; ?></div>
+        </div>
+
+        <!-- Soporte -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-brand-cyan/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-brand-cyan/10 rounded-xl flex items-center justify-center text-brand-cyan">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Contactar Soporte</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['soporte']; ?></div>
+        </div>
+
+        <!-- Iniciar Proyecto -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-indigo-500/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                    <i data-lucide="rocket" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Inicio Proy.</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['iniciar_proyecto']; ?></div>
+        </div>
+
+        <!-- Solicitar Demo -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-brand-lime/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-brand-lime/10 rounded-xl flex items-center justify-center text-brand-lime">
+                    <i data-lucide="presentation" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Solicitar Demo</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['solicitar_demo']; ?></div>
+        </div>
+
+        <!-- Ver Caso -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-brand-cyan/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-brand-cyan/10 rounded-xl flex items-center justify-center text-brand-cyan">
+                    <i data-lucide="eye" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Ver proyecto</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['ver_caso']; ?></div>
+        </div>
+
+        <?php if ($current_tab === 'metricas'): ?>
+        <!-- Mensajes del Formulario -->
+        <div class="bg-white dark:bg-gray-900 p-5 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-sm group hover:border-indigo-500/30 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center text-indigo-500">
+                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
+                </div>
+                <div class="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest">Leads Form.</div>
+            </div>
+            <div class="text-3xl font-black text-gray-900 dark:text-white"><?php echo $metricasReal['contacto_formulario']; ?></div>
+        </div>
+        <?php endif; ?>
+    </div>
+
+    <!-- Gráficas de Rendimiento (Tráfico y Mensajes) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+        <!-- Gráfica de Tráfico -->
+        <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i data-lucide="trending-up" class="text-brand-lime w-5 h-5"></i>
+                    Tráfico Diario
+                </h3>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest"><?php echo $labelPeriodo; ?></span>
+            </div>
+            <div class="h-[250px] w-full">
+                <canvas id="visitasChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Gráfica de Mensajes Enviados -->
+        <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i data-lucide="mail" class="text-indigo-500 w-5 h-5"></i>
+                    Mensajes enviados por WhatsApp por día
+                </h3>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap"><?php echo $labelPeriodo; ?></span>
+            </div>
+            <div class="h-[250px] w-full">
+                <canvas id="messagesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fila 2: Ranking de Proyectos y Gráfica de Conversión -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Ranking de Proyectos Top -->
+        <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
+            <div class="p-8 border-b border-gray-50 dark:border-gray-800 flex items-center justify-between">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i data-lucide="trophy" class="text-brand-lime w-5 h-5"></i>
+                    Ranking de Proyectos Top
+                </h3>
+            </div>
+            <div class="p-8">
+                <?php if(empty($rankingProyectos)): ?>
+                    <p class="text-center py-10 text-gray-400 font-medium italic">Sin votos o clics registrados.</p>
+                <?php else: ?>
+                    <div class="space-y-6">
+                        <?php 
+                        $maxTotal = $rankingProyectos[0]['total'] ?: 1;
+                        foreach($rankingProyectos as $index => $proy): 
+                            $percentage = ($proy['total'] / $maxTotal) * 100;
+                            $medallColor = ['text-yellow-400', 'text-gray-400', 'text-amber-600'][$index] ?? 'text-brand-cyan/40';
+                        ?>
+                            <div class="relative">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-3">
+                                        <span class="font-black <?php echo $medallColor; ?> text-lg">#<?php echo $index + 1; ?></span>
+                                        <span class="font-bold text-gray-900 dark:text-white text-sm"><?php echo htmlspecialchars($proy['proyecto']); ?></span>
+                                    </div>
+                                    <span class="font-black text-gray-900 dark:text-white text-xs bg-gray-50 dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                                        <?php echo $proy['total']; ?> pts
+                                    </span>
+                                </div>
+                                <div class="w-full h-1.5 bg-gray-50 dark:bg-gray-800 rounded-full overflow-hidden">
+                                    <div class="h-full bg-brand-lime transition-all duration-1000" style="width: <?php echo $percentage; ?>%"></div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Gráfica de Personas Contactando -->
+        <div class="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 p-8 shadow-sm">
+            <div class="flex items-center justify-between mb-8">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                    <i data-lucide="users" class="text-brand-lime w-5 h-5"></i>
+                    Personas contactando a la empresa por día
+                </h3>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap"><?php echo $labelPeriodo; ?></span>
+            </div>
+            <div class="h-[250px] w-full">
+                <canvas id="contactsTotalChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 
 <!-- MODAL ENVIAR CORREO -->
@@ -974,12 +1274,143 @@ include '../includes/admin_sidebar.php';
                 <button type="submit" class="w-full py-4 bg-gray-900 dark:bg-brand-cyan dark:text-gray-900 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10 dark:shadow-brand-cyan/20 text-sm uppercase tracking-widest">
                     Confirmar Cambio
            
+    <!-- LIBRERÍA DE GRÁFICAS -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         /**
          * 1. NAVEGACIÓN Y UI GLOBAL
          */
         const currentTab = "<?php echo $current_tab; ?>";
         const navEl = document.getElementById('nav-' + currentTab);
+
+        // --- INICIALIZACIÓN DE GRÁFICA DE VISITAS ---
+        if (currentTab === 'metricas') {
+            const ctx = document.getElementById('visitasChart');
+            if (ctx) {
+                const isDark = document.documentElement.classList.contains('dark');
+                const accentColor = '#00E5FF'; // Cyan
+                
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: <?php echo json_encode($labelsVisitas); ?>,
+                        datasets: [{
+                            label: 'Visitas Únicas',
+                            data: <?php echo json_encode($dataVisitas); ?>,
+                            backgroundColor: accentColor,
+                            borderRadius: 8,
+                            hoverBackgroundColor: '#B2FF05', // Lime
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                                ticks: { 
+                                    font: { size: 10 }, 
+                                    color: isDark ? '#9ca3af' : '#6b7280',
+                                    stepSize: 1, // Forzar saltos de 1 en 1
+                                    precision: 0 // No mostrar decimales
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 9 }, color: isDark ? '#9ca3af' : '#6b7280' }
+                            }
+                        }
+                    }
+                });
+
+                // --- INICIALIZACIÓN DE GRÁFICA DE MENSAJES ---
+                const ctxMsg = document.getElementById('messagesChart');
+                if (ctxMsg) {
+                    new Chart(ctxMsg, {
+                        type: 'bar',
+                        data: {
+                            labels: <?php echo json_encode($labelsVisitas); ?>,
+                            datasets: [{
+                                label: 'Mensajes Directos',
+                                data: <?php echo json_encode($dataMensajes); ?>,
+                                backgroundColor: '#6366f1', // Indigo
+                                borderRadius: 8,
+                                hoverBackgroundColor: '#818cf8',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                                    ticks: { 
+                                        font: { size: 10 }, 
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        stepSize: 1,
+                                        precision: 0
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 9 }, color: isDark ? '#9ca3af' : '#6b7280' }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // --- INICIALIZACIÓN DE GRÁFICA DE CONVERSIÓN TOTAL ---
+                const ctxContact = document.getElementById('contactsTotalChart');
+                if (ctxContact) {
+                    new Chart(ctxContact, {
+                        type: 'bar',
+                        data: {
+                            labels: <?php echo json_encode($labelsVisitas); ?>,
+                            datasets: [{
+                                label: 'Conversión Omnicanal',
+                                data: <?php echo json_encode($dataContactos); ?>,
+                                backgroundColor: '#B2FF05', // Lima
+                                borderRadius: 8,
+                                hoverBackgroundColor: '#ccff33',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                                    ticks: { 
+                                        font: { size: 10 }, 
+                                        color: isDark ? '#9ca3af' : '#6b7280',
+                                        stepSize: 1,
+                                        precision: 0
+                                    }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { font: { size: 9 }, color: isDark ? '#9ca3af' : '#6b7280' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        }
         if (navEl) {
             navEl.classList.remove('text-gray-500', 'dark:text-gray-400');
             navEl.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');

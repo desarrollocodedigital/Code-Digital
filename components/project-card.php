@@ -85,9 +85,10 @@ if (strpos($imageUrl, 'http') !== 0 && strpos($imageUrl, '//') !== 0 && strpos($
                 >
                     Solicitar Demo
                 </button>
-                <button class="text-[#111827] dark:text-white font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all hover:text-<?php echo $colorBrand; ?> dark:hover:text-<?php echo $colorBrand; ?>">
+                <?php $detailLink = empty($base_asset_path) ? 'views/proyecto_detalle.php' : 'proyecto_detalle.php'; ?>
+                <a href="<?php echo $detailLink . '?slug=' . urlencode($proyecto['id']); ?>" class="text-[#111827] dark:text-white font-semibold text-sm flex items-center gap-2 hover:gap-3 transition-all hover:text-<?php echo $colorBrand; ?> dark:hover:text-<?php echo $colorBrand; ?>">
                     Ver Caso <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                </button>
+                </a>
             </div>
         </div>
     </div>

@@ -13,6 +13,11 @@ if ($id) {
         $stmt = $pdo->prepare("SELECT * FROM proyectos WHERE id = ?");
         $stmt->execute([$id]);
         $proyecto = $stmt->fetch();
+        if ($proyecto) {
+            $stmtGal = $pdo->prepare("SELECT id, imagen_url FROM proyecto_imagenes WHERE proyecto_id = ? ORDER BY orden ASC");
+            $stmtGal->execute([$id]);
+            $proyecto['galeria'] = $stmtGal->fetchAll();
+        }
     } catch (PDOException $e) {
         $error = "Error al cargar el proyecto: " . $e->getMessage();
     }
@@ -78,6 +83,24 @@ include '../includes/admin_sidebar.php';
                 <textarea name="descripcion" rows="4" placeholder="Describe los objetivos y alcances del proyecto..." class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-brand-cyan rounded-2xl px-6 py-4 outline-none transition-all resize-none font-medium text-gray-900 dark:text-white"><?php echo htmlspecialchars($proyecto['descripcion'] ?? ''); ?></textarea>
             </div>
 
+            <!-- Detalles del Caso de Estudio -->
+            <div class="p-8 bg-gray-50 dark:bg-gray-800/50 rounded-[2rem] space-y-8 border border-gray-100 dark:border-gray-800">
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 border-l-4 border-brand-lime pl-4">Detalles del Caso de Estudio</h4>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i> El Problema
+                    </label>
+                    <textarea name="problema" rows="4" placeholder="¿Cuál era el desafío inicial del cliente?" class="w-full bg-white dark:bg-gray-900 border border-transparent focus:border-brand-cyan rounded-2xl px-6 py-4 outline-none transition-all resize-none font-medium text-gray-900 dark:text-white"><?php echo htmlspecialchars($proyecto['problema'] ?? ''); ?></textarea>
+                </div>
+                <div class="space-y-3">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center justify-between gap-2">
+                        <span class="flex items-center gap-2"><i data-lucide="grid" class="w-3.5 h-3.5"></i> Funcionalidades Principales</span>
+                        <span class="text-[10px] text-brand-cyan lowercase font-medium px-2 py-0.5 bg-brand-cyan/10 rounded-full">Separar con saltos de línea (Enter)</span>
+                    </label>
+                    <textarea name="funcionalidades" rows="4" placeholder="Ej:&#10;Módulo de inventarios&#10;Panel de analítica&#10;Integración con API" class="w-full bg-white dark:bg-gray-900 border border-transparent focus:border-brand-cyan rounded-2xl px-6 py-4 outline-none transition-all resize-none font-medium text-gray-900 dark:text-white"><?php echo htmlspecialchars($proyecto['funcionalidades'] ?? ''); ?></textarea>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="space-y-3">
                     <label class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
@@ -136,6 +159,40 @@ include '../includes/admin_sidebar.php';
                         </div>
                     </div>
                 </div>
+            </div>
+
+
+            <!-- Galería -->
+            <div class="p-8 bg-gray-50 dark:bg-gray-800/50 rounded-[2rem] space-y-8 border border-gray-100 dark:border-gray-800">
+                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 border-l-4 border-brand-cyan pl-4">Galería de Imágenes</h4>
+                
+                <div class="space-y-4">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        <i data-lucide="images" class="w-3.5 h-3.5"></i> Añadir Nuevas Imágenes
+                    </label>
+                    <input type="file" name="galeria_archivos[]" accept=".png,.jpg,.jpeg" multiple class="block w-full text-sm text-gray-500 file:mr-4 file:py-3 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-brand-cyan file:text-gray-900 hover:file:bg-brand-cyan/80 transition-all cursor-pointer bg-white dark:bg-gray-900 rounded-2xl p-2" />
+                    <p class="text-[10px] text-gray-500 font-medium">Recomendado: 1200x800px. Puedes seleccionar varios archivos a la vez.</p>
+                </div>
+
+                <?php if (!empty($proyecto['galeria'])): ?>
+                <div id="gallery-section" class="space-y-4">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 block bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-100 dark:border-gray-800">
+                        <i data-lucide="info" class="w-3.5 h-3.5 text-brand-cyan"></i> Haz clic en la papelera para eliminar imágenes de forma inmediata:
+                    </label>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <?php foreach($proyecto['galeria'] as $img): ?>
+                            <div class="gallery-item relative group aspect-video rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300">
+                                <img src="../<?php echo $img['imagen_url']; ?>" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-red-500/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button type="button" onclick="deleteGalleryImg(<?php echo $img['id']; ?>, this.closest('.gallery-item'))" class="text-white transform hover:scale-125 transition-transform duration-300" title="Eliminar imagen">
+                                        <i data-lucide="trash-2" class="w-8 h-8"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
 
             <div class="p-8 bg-gray-50 dark:bg-gray-800/50 rounded-[2rem] space-y-8 border border-gray-100 dark:border-gray-800">
@@ -414,6 +471,48 @@ include '../includes/admin_sidebar.php';
             alert('Error de conexión con el servidor');
         }
     });
+
+    // LÓGICA DE BORRADO DE GALERÍA (INMEDIATO)
+    window.deleteGalleryImg = function(id, element) {
+        if (!confirm('¿Estás seguro de eliminar esta imagen? Esta acción se ejecutará de inmediato y no se puede deshacer.')) return;
+
+        const formData = new FormData();
+        formData.append('action', 'delete_gallery_image');
+        formData.append('id', id);
+
+        // Efecto visual de "procesando"
+        element.classList.add('opacity-50', 'pointer-events-none');
+
+        fetch('../api/admin_actions.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Animación de salida
+                element.style.transform = 'scale(0.8)';
+                element.style.opacity = '0';
+                setTimeout(() => {
+                    element.remove();
+                    // Ocultar sección si ya no hay imágenes
+                    const remaining = document.querySelectorAll('.gallery-item');
+                    if (remaining.length === 0) {
+                        const section = document.getElementById('gallery-section');
+                        if (section) section.classList.add('hidden');
+                    }
+                }, 300);
+            } else {
+                element.classList.remove('opacity-50', 'pointer-events-none');
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            element.classList.remove('opacity-50', 'pointer-events-none');
+            console.error('Error:', error);
+            alert('Ocurrió un error al intentar eliminar la imagen.');
+        });
+    };
 </script>
 </body>
 </html>
