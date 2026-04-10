@@ -25,6 +25,7 @@ if ($id) {
 
 $title = ($proyecto ? "Editar" : "Nuevo") . " Proyecto";
 $page_title = $title;
+$current_tab = 'proyectos';
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';

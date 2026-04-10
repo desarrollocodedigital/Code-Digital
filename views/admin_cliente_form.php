@@ -20,6 +20,7 @@ if ($id) {
 
 $title = ($cliente ? "Editar" : "Nuevo") . " Cliente";
 $page_title = $title;
+$current_tab = 'clientes';
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -83,12 +84,6 @@ include '../includes/admin_sidebar.php';
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const navClientes = document.getElementById('nav-clientes');
-        if (navClientes) {
-            navClientes.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');
-            navClientes.classList.remove('text-gray-500', 'dark:text-gray-400');
-            navClientes.classList.replace('text-brand-cyan', 'text-brand-lime');
-        }
         if (typeof lucide !== 'undefined') lucide.createIcons();
 
         // Preview de Icono en Tiempo Real

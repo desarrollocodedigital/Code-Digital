@@ -20,6 +20,7 @@ if ($id) {
 
 $title = ($plantilla ? "Editar" : "Nueva") . " Plantilla";
 $page_title = $title;
+$current_tab = 'plantillas';
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
@@ -135,13 +136,6 @@ include '../includes/admin_sidebar.php';
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Marcar navegación activa
-        const navPlantillas = document.getElementById('nav-plantillas');
-        if (navPlantillas) {
-            navPlantillas.classList.add('bg-brand-cyan/10', 'text-brand-cyan', 'border-brand-cyan/20');
-            navPlantillas.classList.remove('text-gray-500', 'dark:text-gray-400');
-        }
-
         const templateBody = document.getElementById('template-body');
         const previewFrame = document.getElementById('preview-frame');
 
