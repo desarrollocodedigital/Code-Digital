@@ -36,6 +36,12 @@ if ($current_tab === 'proyectos') {
     $page_title = "Análisis de Datos y Rendimiento";
 }
 
+// --- INICIALIZACIÓN POR DEFECTO PARA EVITAR ERRORES DE JS ---
+$labelsVisitas = [];
+$dataVisitas = [];
+$dataMensajes = [];
+$dataContactos = [];
+
 // Lógica de Actividad Reciente para el Dashboard
 $actividades = [];
 if (!empty($mensajes)) {
@@ -70,11 +76,11 @@ $actividades_recientes = array_slice($actividades, 0, 5);
 // --- LÓGICA DE MÉTRICAS REALES ---
 if ($current_tab === 'metricas' || $current_tab === 'dashboard') {
     $periodo = $_GET['periodo'] ?? '7d';
-    $whereClause = "";
+    $whereClause = "WHERE 1=1";
     if ($periodo === '7d') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
+        $whereClause .= " AND fecha >= DATE_SUB(NOW(), INTERVAL 7 DAY)";
     } elseif ($periodo === '30d') {
-        $whereClause = "WHERE fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
+        $whereClause .= " AND fecha >= DATE_SUB(NOW(), INTERVAL 30 DAY)";
     }
 
     // Totales por tipo
@@ -114,69 +120,105 @@ if ($current_tab === 'metricas' || $current_tab === 'dashboard') {
         $diasHistoricos = 30;
         $labelPeriodo = "Últimos 30 días";
     } elseif ($periodo === 'all') {
-        $diasHistoricos = 90;
-        $labelPeriodo = "Histórico (90 días)";
+        $diasHistoricos = 365; // No se usa para el bucle en modo 'all'
+        $labelPeriodo = "Histórico (Resumen Anual)";
     }
 
-    // --- DATOS PARA LA GRÁFICA DE VISITAS ---
-    $stmtVisitas = $pdo->prepare("SELECT fecha, COUNT(*) as total FROM visitas WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY fecha ORDER BY fecha ASC");
-    $stmtVisitas->execute([$diasHistoricos]);
-    $visitasRaw = $stmtVisitas->fetchAll();
+    if ($periodo === 'all') {
+        // --- CONSULTAS GRUPALES POR AÑO (HISTÓRICO) ---
+        $stmtVisitas = $pdo->query("SELECT YEAR(fecha) as periodo, COUNT(*) as total FROM visitas GROUP BY periodo ORDER BY periodo ASC");
+        $visitasRaw = $stmtVisitas->fetchAll();
 
-    // --- DATOS PARA LA GRÁFICA DE MENSAJES (WhatsApp) ---
-    $stmtMensajes = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('experto', 'soporte') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
-    $stmtMensajes->execute([$diasHistoricos]);
-    $mensajesRaw = $stmtMensajes->fetchAll();
+        $stmtMensajes = $pdo->query("SELECT YEAR(fecha) as periodo, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte') GROUP BY periodo ORDER BY periodo ASC");
+        $mensajesRaw = $stmtMensajes->fetchAll();
 
-    // --- DATOS PARA LA GRÁFICA DE CONVERSIÓN TOTAL ---
-    $stmtContactos = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte', 'contacto_formulario', 'solicitar_demo') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
-    $stmtContactos->execute([$diasHistoricos]);
-    $contactosRaw = $stmtContactos->fetchAll();
+        $stmtContactos = $pdo->query("SELECT YEAR(fecha) as periodo, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte', 'contacto_formulario', 'solicitar_demo') GROUP BY periodo ORDER BY periodo ASC");
+        $contactosRaw = $stmtContactos->fetchAll();
+    } else {
+        // --- CONSULTAS DIARIAS (7D / 30D) ---
+        $stmtVisitas = $pdo->prepare("SELECT fecha, COUNT(*) as total FROM visitas WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY fecha ORDER BY fecha ASC");
+        $stmtVisitas->execute([$diasHistoricos]);
+        $visitasRaw = $stmtVisitas->fetchAll();
 
-    $labelsVisitas = [];
-    $dataVisitas = [];
-    $dataMensajes = [];
-    $dataContactos = []; // Nueva data para conversión total
-    $iteradorFecha = new DateTime("-".($diasHistoricos-1)." days");
-    
-    for ($i = 0; $i < $diasHistoricos; $i++) {
-        $fechaKey = $iteradorFecha->format('Y-m-d');
-        $labelsVisitas[] = $iteradorFecha->format('d M');
-        
-        // Data Visitas
-        $encVisita = false;
-        foreach ($visitasRaw as $vr) {
-            if ($vr['fecha'] === $fechaKey) {
-                $dataVisitas[] = $vr['total'];
-                $encVisita = true;
-                break;
-            }
+        $stmtMensajes = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
+        $stmtMensajes->execute([$diasHistoricos]);
+        $mensajesRaw = $stmtMensajes->fetchAll();
+
+        $stmtContactos = $pdo->prepare("SELECT DATE(fecha) as dia, COUNT(*) as total FROM eventos_tracking WHERE evento_tipo IN ('agendar', 'soporte', 'contacto_formulario', 'solicitar_demo') AND fecha >= DATE_SUB(CURDATE(), INTERVAL ? DAY) GROUP BY dia ORDER BY dia ASC");
+        $stmtContactos->execute([$diasHistoricos]);
+        $contactosRaw = $stmtContactos->fetchAll();
+    }
+
+    // --- PROCESAMIENTO DE DATOS ---
+    if ($periodo === 'all') {
+        // Mapeo directo de años encontrados
+        $allYears = array_unique(array_merge(
+            array_column($visitasRaw, 'periodo'),
+            array_column($mensajesRaw, 'periodo'),
+            array_column($contactosRaw, 'periodo')
+        ));
+        sort($allYears);
+
+        foreach ($allYears as $year) {
+            $labelsVisitas[] = (string)$year;
+            
+            // Buscar total visitas para este año
+            $vTotal = 0;
+            foreach($visitasRaw as $v) { if($v['periodo'] == $year) { $vTotal = $v['total']; break; } }
+            $dataVisitas[] = $vTotal;
+
+            // Buscar total mensajes para este año
+            $mTotal = 0;
+            foreach($mensajesRaw as $m) { if($m['periodo'] == $year) { $mTotal = $m['total']; break; } }
+            $dataMensajes[] = $mTotal;
+
+            // Buscar total contactos para este año
+            $cTotal = 0;
+            foreach($contactosRaw as $c) { if($c['periodo'] == $year) { $cTotal = $c['total']; break; } }
+            $dataContactos[] = $cTotal;
         }
-        if (!$encVisita) $dataVisitas[] = 0;
-
-        // Data Mensajes
-        $encMensaje = false;
-        foreach ($mensajesRaw as $mr) {
-            if ($mr['dia'] === $fechaKey) {
-                $dataMensajes[] = $mr['total'];
-                $encMensaje = true;
-                break;
+    } else {
+        // El bucle diario original
+        $iteradorFecha = new DateTime("-".($diasHistoricos-1)." days");
+        for ($i = 0; $i < $diasHistoricos; $i++) {
+            $fechaKey = $iteradorFecha->format('Y-m-d');
+            $labelsVisitas[] = $iteradorFecha->format('d M');
+            
+            // Data Visitas
+            $encVisita = false;
+            foreach ($visitasRaw as $vr) {
+                if ($vr['fecha'] === $fechaKey) {
+                    $dataVisitas[] = $vr['total'];
+                    $encVisita = true;
+                    break;
+                }
             }
-        }
-        if (!$encMensaje) $dataMensajes[] = 0;
+            if (!$encVisita) $dataVisitas[] = 0;
 
-        // Data Contactos Totales
-        $encContacto = false;
-        foreach ($contactosRaw as $cr) {
-            if ($cr['dia'] === $fechaKey) {
-                $dataContactos[] = $cr['total'];
-                $encContacto = true;
-                break;
+            // Data Mensajes
+            $encMensaje = false;
+            foreach ($mensajesRaw as $mr) {
+                if ($mr['dia'] === $fechaKey) {
+                    $dataMensajes[] = $mr['total'];
+                    $encMensaje = true;
+                    break;
+                }
             }
-        }
-        if (!$encContacto) $dataContactos[] = 0;
+            if (!$encMensaje) $dataMensajes[] = 0;
 
-        $iteradorFecha->modify('+1 day');
+            // Data Contactos Totales
+            $encContacto = false;
+            foreach ($contactosRaw as $cr) {
+                if ($cr['dia'] === $fechaKey) {
+                    $dataContactos[] = $cr['total'];
+                    $encContacto = true;
+                    break;
+                }
+            }
+            if (!$encContacto) $dataContactos[] = 0;
+
+            $iteradorFecha->modify('+1 day');
+        }
     }
 }
 
@@ -1235,6 +1277,7 @@ include '../includes/admin_sidebar.php';
         </div>
     </div>
 </div>
+</div>
 
 <!-- MODAL CAMBIAR CONTRASEÑA -->
 <div id="modal-change-password" class="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
@@ -1273,8 +1316,13 @@ include '../includes/admin_sidebar.php';
                 </div>
                 <button type="submit" class="w-full py-4 bg-gray-900 dark:bg-brand-cyan dark:text-gray-900 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-gray-900/10 dark:shadow-brand-cyan/20 text-sm uppercase tracking-widest">
                     Confirmar Cambio
-           
-    <!-- LIBRERÍA DE GRÁFICAS -->
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- LIBRERÍA DE GRÁFICAS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>

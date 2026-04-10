@@ -16,6 +16,7 @@ if ($id) {
 }
 
 $page_title = $client ? "Editar Prospecto" : "Nuevo Prospecto";
+$current_tab = 'potenciales';
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';
 ?>

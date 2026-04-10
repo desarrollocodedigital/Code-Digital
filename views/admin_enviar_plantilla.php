@@ -11,6 +11,7 @@ $plantillas = $stmtApps->fetchAll();
 
 $email_destinatario = $_GET['email'] ?? '';
 $page_title = "Enviar Correo";
+$current_tab = 'mensajes';
 
 include '../includes/admin_header.php';
 include '../includes/admin_sidebar.php';

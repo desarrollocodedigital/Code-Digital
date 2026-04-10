@@ -21,7 +21,18 @@
             </div>
 
             <!-- Navigation -->
-            <?php $tab_activa = $_GET['tab'] ?? 'dashboard'; ?>
+            <?php 
+                // Asegurar que el contador de mensajes esté disponible en todas las vistas
+                if (!isset($unread_count)) {
+                    try {
+                        $stmt_sidebar_count = $pdo->query("SELECT COUNT(*) as unread FROM mensajes WHERE estado = 'nuevo'");
+                        $unread_count = $stmt_sidebar_count->fetch()['unread'];
+                    } catch (Exception $e) {
+                        $unread_count = 0;
+                    }
+                }
+                $tab_activa = $current_tab ?? ($_GET['tab'] ?? 'dashboard'); 
+            ?>
             <nav class="flex-1 space-y-2">
                 <?php 
                 $nav_items = [
